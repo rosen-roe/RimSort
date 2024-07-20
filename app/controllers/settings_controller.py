@@ -8,9 +8,9 @@ from PySide6.QtWidgets import QApplication
 
 from app.models.dialogue import show_dialogue_confirmation, show_dialogue_file
 from app.models.settings import Instance, Settings
-from app.utils.constants import SortMethod
 from app.utils.event_bus import EventBus
 from app.utils.generic import platform_specific_open
+from app.utils.steam.steamcmd.wrapper import SteamcmdInterface
 from app.utils.system_info import SystemInfo
 from app.views.settings_dialog import SettingsDialog
 
@@ -422,12 +422,11 @@ class SettingsController(QObject):
             self.settings.external_steam_metadata_repo
         )
         self.settings_dialog.steam_workshop_db_github_url.setCursorPosition(0)
-        self.settings_dialog.database_expiry.setText(str(self.settings.database_expiry))
 
         # Sorting tab
-        if self.settings.sorting_algorithm == SortMethod.ALPHABETICAL:
+        if self.settings.sorting_algorithm == "Alphabetical":
             self.settings_dialog.sorting_alphabetical_radio.setChecked(True)
-        elif self.settings.sorting_algorithm == SortMethod.TOPOLOGICAL:
+        elif self.settings.sorting_algorithm == "Topological":
             self.settings_dialog.sorting_topological_radio.setChecked(True)
 
         # Database Builder tab
@@ -440,6 +439,9 @@ class SettingsController(QObject):
         )
         self.settings_dialog.db_builder_update_instead_of_overwriting_checkbox.setChecked(
             self.settings.build_steam_database_update_toggle
+        )
+        self.settings_dialog.db_builder_database_expiry.setText(
+            str(self.settings.database_expiry)
         )
         self.settings_dialog.db_builder_steam_api_key.setText(
             self.settings.steam_apikey
@@ -562,13 +564,12 @@ class SettingsController(QObject):
         self.settings.external_steam_metadata_file_path = (
             self.settings_dialog.steam_workshop_db_local_file.text()
         )
-        self.settings.database_expiry = int(self.settings_dialog.database_expiry.text())
 
         # Sorting tab
         if self.settings_dialog.sorting_alphabetical_radio.isChecked():
-            self.settings.sorting_algorithm = SortMethod.ALPHABETICAL
+            self.settings.sorting_algorithm = "Alphabetical"
         elif self.settings_dialog.sorting_topological_radio.isChecked():
-            self.settings.sorting_algorithm = SortMethod.TOPOLOGICAL
+            self.settings.sorting_algorithm = "Topological"
 
         # Database Builder tab
         if self.settings_dialog.db_builder_include_all_radio.isChecked():
@@ -579,6 +580,9 @@ class SettingsController(QObject):
             self.settings_dialog.db_builder_query_dlc_checkbox.isChecked()
         )
         self.settings.build_steam_database_update_toggle = self.settings_dialog.db_builder_update_instead_of_overwriting_checkbox.isChecked()
+        self.settings.database_expiry = int(
+            self.settings_dialog.db_builder_database_expiry.text()
+        )
         self.settings.steam_apikey = (
             self.settings_dialog.db_builder_steam_api_key.text()
         )
@@ -644,13 +648,13 @@ class SettingsController(QObject):
         Reset the settings to their default values.
         """
         answer = show_dialogue_confirmation(
-            title="Reset to defaults",
-            text="Are you sure you want to reset all settings to their default values?",
+            title="重置为默认值",
+            text="是否确实要将所有设置重置为默认值？",
         )
-        if answer == "Cancel":
+        if answer == "取消":
             return
 
-        self.settings = Settings()
+        self.settings.apply_default_settings()
         self._update_view_from_model()
 
     @Slot()
@@ -700,7 +704,7 @@ class SettingsController(QObject):
         """
         game_location = show_dialogue_file(
             mode="open_dir",
-            caption="Select Game Location",
+            caption="选择游戏位置",
             _dir=str(self._last_file_dialog_path),
         )
         if not game_location:
@@ -714,7 +718,7 @@ class SettingsController(QObject):
         """
         game_location = show_dialogue_file(
             mode="open_dir",
-            caption="Select Game Location",
+            caption="选择游戏位置",
             _dir=str(self._last_file_dialog_path),
         )
         if not game_location:
@@ -743,7 +747,7 @@ class SettingsController(QObject):
         """
         config_folder_location = show_dialogue_file(
             mode="open_dir",
-            caption="Select Config Folder",
+            caption="选择配置文件夹",
             _dir=str(self._last_file_dialog_path),
         )
         if not config_folder_location:
@@ -773,7 +777,7 @@ class SettingsController(QObject):
         """
         steam_mods_folder_location = show_dialogue_file(
             mode="open_dir",
-            caption="Select Steam Mods Folder",
+            caption="选择Steam模组文件夹",
             _dir=str(self._last_file_dialog_path),
         )
         if not steam_mods_folder_location:
@@ -805,7 +809,7 @@ class SettingsController(QObject):
         """
         local_mods_folder_location = show_dialogue_file(
             mode="open_dir",
-            caption="Select Local Mods Folder",
+            caption="选择本地模组文件夹",
             _dir=str(self._last_file_dialog_path),
         )
         if not local_mods_folder_location:
@@ -829,10 +833,10 @@ class SettingsController(QObject):
         """
         if not skip_confirmation:
             answer = show_dialogue_confirmation(
-                title="Clear all locations",
-                text="Are you sure you want to clear all locations?",
+                title="清除所有设置的位置",
+                text="您确定要清除所有位置吗？",
             )
-            if answer == "Cancel":
+            if answer == "取消":
                 return
 
         self.settings_dialog.game_location.setText("")
@@ -846,7 +850,7 @@ class SettingsController(QObject):
         This function tries to autodetect Rimworld paths based on the
         defaults typically found per-platform, and set them in the client.
         """
-        logger.info("USER ACTION: starting autodetect paths")
+        logger.info("USER ACTION: 启动自动检测路径")
         user_home = Path.home()
 
         darwin_paths = [
@@ -901,74 +905,74 @@ class SettingsController(QObject):
             os_paths = windows_paths
             logger.info(f"Running on Windows with the following paths: {os_paths}")
         else:
-            logger.error("Attempting to autodetect paths on an unknown system")
+            logger.error("尝试自动检测未知系统上的路径")
 
         # Convert our paths to str
         os_paths = [str(path) for path in os_paths]
 
         # If the game folder exists...
         if os.path.exists(os_paths[0]):
-            logger.info(f"Autodetected game folder path exists: {os_paths[0]}")
+            logger.info(f"存在自动检测的游戏文件夹路径: {os_paths[0]}")
             if not self.settings_dialog.game_location.text():
                 logger.info(
-                    "No value set currently for game folder. Overwriting with autodetected path"
+                    "当前未为游戏文件夹设置值。使用自动检测的路径覆盖"
                 )
                 self.settings_dialog.game_location.setText(os_paths[0])
             else:
-                logger.info("Value already set for game folder. Passing")
+                logger.info("已为游戏文件夹设置值。通过")
         else:
             logger.warning(
-                f"Autodetected game folder path does not exist: {os_paths[0]}"
+                f"自动检测的游戏文件夹路径不存在: {os_paths[0]}"
             )
 
         # If the config folder exists...
         if os.path.exists(os_paths[1]):
-            logger.info(f"Autodetected config folder path exists: {os_paths[1]}")
+            logger.info(f"存在自动检测到的配置文件文件夹路径: {os_paths[1]}")
             if not self.settings_dialog.config_folder_location.text():
                 logger.info(
-                    "No value set currently for config folder. Overwriting with autodetected path"
+                    "当前未为配置文件夹设置值。使用自动检测的路径覆盖"
                 )
                 self.settings_dialog.config_folder_location.setText(os_paths[1])
             else:
-                logger.info("Value already set for config folder. Passing")
+                logger.info("已为配置文件夹设置值。通过")
         else:
             logger.warning(
-                f"Autodetected config folder path does not exist: {os_paths[1]}"
+                f"自动检测到的配置文件夹路径不存在: {os_paths[1]}"
             )
 
         # If the workshop folder exists
         if os.path.exists(os_paths[2]):
-            logger.info(f"Autodetected workshop folder path exists: {os_paths[2]}")
+            logger.info(f"存在自动检测的创意工坊文件夹路径: {os_paths[2]}")
             if not self.settings_dialog.steam_mods_folder_location.text():
                 logger.info(
-                    "No value set currently for workshop folder. Overwriting with autodetected path"
+                    "当前未为创意工坊文件夹设置值。使用自动检测的路径覆盖"
                 )
                 self.settings_dialog.steam_mods_folder_location.setText(os_paths[2])
             else:
-                logger.info("Value already set for workshop folder. Passing")
+                logger.info("已为创意工坊文件夹设置值。通过")
         else:
             logger.warning(
-                f"Autodetected workshop folder path does not exist: {os_paths[2]}"
+                f"自动检测的创意工坊文件夹路径不存在: {os_paths[2]}"
             )
 
         # Checking for an existing Rimworld/Mods folder
         rimworld_mods_path = (Path(os_paths[0]) / "Mods").resolve()
         if os.path.exists(rimworld_mods_path):
             logger.info(
-                f"Autodetected local mods folder path exists: {rimworld_mods_path}"
+                f"存在自动检测到的本地模组文件夹路径: {rimworld_mods_path}"
             )
             if not self.settings_dialog.local_mods_folder_location.text():
                 logger.info(
-                    "No value set currently for local mods folder. Overwriting with autodetected path"
+                    "当前未为本地模组文件夹设置值。使用自动检测的路径覆盖"
                 )
                 self.settings_dialog.local_mods_folder_location.setText(
                     str(rimworld_mods_path)
                 )
             else:
-                logger.info("Value already set for local mods folder. Passing")
+                logger.info("已为本地模组文件夹设置值。通过")
         else:
             logger.warning(
-                f"Autodetected game folder path does not exist: {rimworld_mods_path}"
+                f"自动检测的游戏文件夹路径不存在: {rimworld_mods_path}"
             )
 
     @Slot()

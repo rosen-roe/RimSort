@@ -22,7 +22,7 @@ class ModInfo:
         """
         Initialize the class.
         """
-        logger.debug("Initializing ModInfo")
+        logger.debug("初始化模组信息")
 
         # Cache MetadataManager instance
         self.metadata_manager = MetadataManager.instance()
@@ -76,7 +76,7 @@ class ModInfo:
                 self.preview_picture.size(), Qt.AspectRatioMode.KeepAspectRatio
             )
         )
-        self.mod_info_name_label = QLabel("Name:")
+        self.mod_info_name_label = QLabel("名字:")
         self.mod_info_name_label.setObjectName("summaryLabel")
         self.mod_info_name_value = QLabel()
         self.mod_info_name_value.setObjectName("summaryValue")
@@ -84,14 +84,14 @@ class ModInfo:
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
         self.mod_info_name_value.setWordWrap(True)
-        self.scenario_info_summary_label = QLabel("Summary:")
+        self.scenario_info_summary_label = QLabel("总结:")
         self.scenario_info_summary_label.setObjectName("summaryLabel")
         self.scenario_info_summary_value = QLabel()
         self.scenario_info_summary_value.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
         self.scenario_info_summary_value.setWordWrap(True)
-        self.mod_info_package_id_label = QLabel("PackageID:")
+        self.mod_info_package_id_label = QLabel("ID:")
         self.mod_info_package_id_label.setObjectName("summaryLabel")
         self.mod_info_package_id_value = QLabel()
         self.mod_info_package_id_value.setObjectName("summaryValue")
@@ -99,7 +99,7 @@ class ModInfo:
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
         self.mod_info_package_id_value.setWordWrap(True)
-        self.mod_info_author_label = QLabel("Authors:")
+        self.mod_info_author_label = QLabel("作者:")
         self.mod_info_author_label.setObjectName("summaryLabel")
         self.mod_info_author_value = QLabel()
         self.mod_info_author_value.setObjectName("summaryValue")
@@ -107,7 +107,7 @@ class ModInfo:
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
         self.mod_info_author_value.setWordWrap(True)
-        self.mod_info_mod_version_label = QLabel("Mod Version:")
+        self.mod_info_mod_version_label = QLabel("模组版本:")
         self.mod_info_mod_version_label.setObjectName("summaryLabel")
         self.mod_info_mod_version_value = QLabel()
         self.mod_info_mod_version_value.setObjectName("summaryValue")
@@ -115,11 +115,11 @@ class ModInfo:
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
         self.mod_info_mod_version_value.setWordWrap(True)
-        self.mod_info_supported_versions_label = QLabel("Supported Version:")
+        self.mod_info_supported_versions_label = QLabel("支持的版本:")
         self.mod_info_supported_versions_label.setObjectName("summaryLabel")
         self.mod_info_supported_versions_value = QLabel()
         self.mod_info_supported_versions_value.setObjectName("summaryValue")
-        self.mod_info_path_label = QLabel("Path:")
+        self.mod_info_path_label = QLabel("路径:")
         self.mod_info_path_label.setObjectName("summaryLabel")
         self.mod_info_path_value = QLabel()
         self.mod_info_path_value.setObjectName("summaryValue")
@@ -128,7 +128,7 @@ class ModInfo:
         )
         self.mod_info_path_value.setWordWrap(True)
         self.description = ScrollLabel()
-        self.description.setText("\n\n\n\n\t\t\tWelcome to RimSort!")
+        self.description.setText("\n\n\n\n\t\t\t欢迎来到 RimSort (≧▽≦)!")
         # Add widgets to child layouts
         self.image_layout.addWidget(self.preview_picture)
         self.mod_info_name.addWidget(self.mod_info_name_label, 20)
@@ -180,7 +180,7 @@ class ModInfo:
         self.scenario_info_summary_label.hide()
         self.scenario_info_summary_value.hide()
 
-        logger.debug("Finished ModInfo initialization")
+        logger.debug("完成模组信息初始化")
 
     def display_mod_info(self, uuid: str) -> None:
         """
@@ -322,7 +322,7 @@ class ModInfo:
             # Get Preview.png
             workshop_folder_path = mod_info.get("path", "")
             logger.debug(
-                f"Retrieved mod path to parse preview image: {workshop_folder_path}"
+                f"检索到的mod路径以解析预览图像: {workshop_folder_path}"
             )
             if os.path.exists(workshop_folder_path):
                 about_folder_name = "About"
@@ -355,7 +355,7 @@ class ModInfo:
                             break
                     # If there was an issue getting the expected path, track and exit
                     if invalid_folder_path_found or invalid_file_path_found:
-                        logger.debug("No preview image found for the mod")
+                        logger.debug("未找到该模组的预览图像")
                         pixmap = QPixmap(self.missing_image_path)
                         self.preview_picture.setPixmap(
                             pixmap.scaled(
@@ -364,7 +364,7 @@ class ModInfo:
                             )
                         )
                     else:
-                        logger.debug("Preview image found")
+                        logger.debug("找到的预览图像")
                         image_path = str(
                             (
                                 Path(workshop_folder_path)
@@ -387,4 +387,4 @@ class ModInfo:
                             Qt.AspectRatioMode.KeepAspectRatio,
                         )
                     )
-        logger.debug("Finished displaying mod info")
+        logger.debug("已完成模组信息的显示")

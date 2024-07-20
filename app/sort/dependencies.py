@@ -12,7 +12,7 @@ def gen_deps_graph(
     # Cache MetadataManager instance
     metadata_manager = MetadataManager.instance()
     # Schema: {item: {dependency1, dependency2, ...}}
-    logger.info("Generating dependencies graph")
+    logger.info("生成依赖关系图")
     dependencies_graph: dict[str, set[str]] = {}
     for uuid in active_mods_uuids:
         package_id = metadata_manager.internal_local_metadata[uuid]["packageid"]
@@ -30,12 +30,12 @@ def gen_deps_graph(
                 # of package_id, explicit_bool
                 if not isinstance(dependency, tuple):
                     logger.error(
-                        f"Expected load order rule to be a tuple: [{dependency}]"
+                        f"预期加载顺序规则为元组: [{dependency}]"
                     )
                 if dependency[0] in active_mod_ids:
                     dependencies_graph[package_id].add(dependency[0])
     logger.info(
-        f"Finished generating dependencies graph of {len(dependencies_graph)} items"
+        f"完成 {len(dependencies_graph)} 个项的依赖关系图生成"
     )
     return dependencies_graph
 
@@ -46,7 +46,7 @@ def gen_rev_deps_graph(
     # Cache MetadataManager instance
     metadata_manager = MetadataManager.instance()
     # Schema: {item: {isDependentOn1, isDependentOn2, ...}}
-    logger.debug("Generating reverse dependencies graph")
+    logger.debug("生成反向依赖关系图")
     reverse_dependencies_graph: dict[str, set[str]] = {}
     for uuid in active_mods_uuids:
         package_id = metadata_manager.internal_local_metadata[uuid]["packageid"]
@@ -60,12 +60,12 @@ def gen_rev_deps_graph(
                 # Dependent[0] is required here as as dependency is a tuple of package_id, explicit_bool
                 if not isinstance(dependent, tuple):
                     logger.error(
-                        f"Expected load order rule to be a tuple: [{dependent}]"
+                        f"预期加载顺序规则为元组: [{dependent}]"
                     )
                 if dependent[0] in active_mod_ids:
                     reverse_dependencies_graph[package_id].add(dependent[0])
     logger.debug(
-        f"Finished generating reverse dependencies graph of {len(reverse_dependencies_graph)}"
+        f"完成生成 {len(reverse_dependencies_graph)} 的反向依赖关系图"
     )
     return reverse_dependencies_graph
 
@@ -80,7 +80,7 @@ def gen_tier_one_deps_graph(
     # into this list as well.
     # TODO: pull from a config
 
-    logger.info("Generating dependencies graph for tier one mods")
+    logger.info("为第一层模组生成依赖关系图")
     known_tier_one_mods = {
         "zetrith.prepatcher",
         "brrainz.harmony",
@@ -105,13 +105,13 @@ def gen_tier_one_deps_graph(
             )
             tier_one_mods.update(dependencies_set)
     logger.info(
-        f"Recursively generated the following set of tier one mods: {tier_one_mods}"
+        f"递归生成以下一组第一层模组: {tier_one_mods}"
     )
     tier_one_dependency_graph = {}
     for tier_one_mod in tier_one_mods:
         # Tier one mods will only ever reference other tier one mods in their dependencies graph
         tier_one_dependency_graph[tier_one_mod] = dependencies_graph[tier_one_mod]
-    logger.info("Attached corresponding dependencies to every tier one mod, returning")
+    logger.info("将相应的依赖附加到每个一级模组，返回")
     return tier_one_dependency_graph, tier_one_mods
 
 
@@ -150,7 +150,7 @@ def gen_tier_three_deps_graph(
     # TODO: pull from a config
     # Cache MetadataManager instance
     metadata_manager = MetadataManager.instance()
-    logger.info("Generating dependencies graph for tier three mods")
+    logger.info("为第三层模组生成依赖关系图")
     known_tier_three_mods = {
         metadata_manager.internal_local_metadata[uuid].get("packageid")
         for uuid in active_mods_uuids
@@ -167,7 +167,7 @@ def gen_tier_three_deps_graph(
             )
             tier_three_mods.update(rev_dependencies_set)
     logger.info(
-        f"Recursively generated the following set of tier three mods: {tier_three_mods}"
+        f"递归生成以下一组三级模组: {tier_three_mods}"
     )
     tier_three_dependency_graph: dict[str, set[str]] = {}
     for tier_three_mod in tier_three_mods:
@@ -178,7 +178,7 @@ def gen_tier_three_deps_graph(
             if possible_add in tier_three_mods:
                 tier_three_dependency_graph[tier_three_mod].add(possible_add)
     logger.info(
-        "Attached corresponding dependencies to every tier three mod, returning"
+        "为每个三层模组附加相应的依赖，返回"
     )
     return tier_three_dependency_graph, tier_three_mods
 
@@ -212,9 +212,9 @@ def gen_tier_two_deps_graph(
     # and tier three mods
     # Cache MetadataManager instance
     metadata_manager = MetadataManager.instance()
-    logger.info("Generating dependencies graph for tier two mods")
+    logger.info("为第二层模组生成依赖关系图")
     logger.info(
-        "Stripping all references to tier one and tier three mods and their dependencies"
+        "剥离对第一层和第三层模组及其依赖项的所有引用"
     )
     tier_two_dependency_graph = {}
     for uuid in active_mods_uuids:
@@ -230,7 +230,7 @@ def gen_tier_two_deps_graph(
                     # Dependent[0] is required here as as dependency is a tuple of package_id, explicit_bool
                     if not isinstance(dependency_id, tuple):
                         logger.error(
-                            f"Expected load order rule to be a tuple: [{dependency_id}]"
+                            f"预期加载顺序规则为元组: [{dependency_id}]"
                         )
                     if (
                         dependency_id[0] not in tier_one_mods
@@ -239,5 +239,5 @@ def gen_tier_two_deps_graph(
                     ):
                         stripped_dependencies.add(dependency_id[0])
             tier_two_dependency_graph[package_id] = stripped_dependencies
-    logger.info("Generated tier two dependency graph, returning")
+    logger.info("生成了第二层依赖关系图，返回")
     return tier_two_dependency_graph

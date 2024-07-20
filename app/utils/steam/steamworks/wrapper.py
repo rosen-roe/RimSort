@@ -15,7 +15,6 @@ if "__compiled__" not in globals():
     sys.path.append(str((Path(getcwd()) / "submodules" / "SteamworksPy")))
 
 from steamworks import STEAMWORKS
-
 from app.utils.generic import launch_game_process
 
 
@@ -33,17 +32,17 @@ class SteamworksInterface:
     """
 
     def __init__(self, callbacks: bool, callbacks_total=None, _libs=None):
-        logger.info("SteamworksInterface initializing...")
+        logger.info("Steamworks接口初始化...")
         self.callbacks = callbacks
         self.callbacks_count = 0
         self.callbacks_total = callbacks_total
         if self.callbacks:
-            logger.debug("Callbacks enabled!")
+            logger.debug("已启用回调！")
             self.end_callbacks = False  # Signal used to end the _callbacks Thread
             if (
                 self.callbacks_total
             ):  # Pass this if you want to do multiple actions with 1 initialization
-                logger.debug(f"Callbacks total : {self.callbacks_total}")
+                logger.debug(f"回调总计 : {self.callbacks_total}")
                 self.multiple_queries = True
             else:
                 self.multiple_queries = False
@@ -55,16 +54,16 @@ class SteamworksInterface:
             self.steamworks.initialize()  # Init the Steamworks API
         except Exception as e:
             logger.warning(
-                f"Unable to initialize Steamworks API due to exception: {e.__class__.__name__}"
+                f"由于异常，无法初始化 Steamworks API: {e.__class__.__name__}"
             )
             logger.warning(
-                "If you are a Steam user, please check that Steam running and that you are logged in..."
+                "如果您是Steam用户，请检查Steam是否正在运行以及您是否已登录..."
             )
             self.steam_not_running = True
         if not self.steam_not_running:  # Skip if True
             if self.callbacks:
                 # Start the thread
-                logger.debug("Starting thread")
+                logger.debug("起始线程")
                 self.steamworks_thread = self._daemon()
                 self.steamworks_thread.start()
 
@@ -73,15 +72,15 @@ class SteamworksInterface:
         while (
             not self.steamworks.loaded()
         ):  # This should not execute as long as Steamworks API init went OK
-            logger.warning("Waiting for Steamworks...")
+            logger.warning("等待 Steamworks...")
         else:
-            logger.info("Steamworks loaded!")
+            logger.info("Steamworks 已加载！")
         while not self.end_callbacks:
             self.steamworks.run_callbacks()
             sleep(0.1)
         else:
             logger.info(
-                f"{self.callbacks_count} callback(s) received. Ending thread..."
+                f"{self.callbacks_count} 收到回调。结束线程..."
             )
 
     def _cb_app_dependencies_result_callback(self, *args, **kwargs) -> None:
@@ -91,10 +90,10 @@ class SteamworksInterface:
         # Add to callbacks count
         self.callbacks_count = self.callbacks_count + 1
         # Debug prints
-        logger.debug(f"GetAppDependencies query callback: {args}, {kwargs}")
-        logger.debug(f"result : {args[0].result}")
+        logger.debug(f"GetAppDependencies 查询回调: {args}, {kwargs}")
+        logger.debug(f"结果 : {args[0].result}")
         pfid = args[0].publishedFileId
-        logger.debug(f"publishedFileId : {pfid}")
+        logger.debug(f"已发布的文件Id : {pfid}")
         app_dependencies_list = args[0].get_app_dependencies_list()
         logger.debug(f"app_dependencies_list : {app_dependencies_list}")
         # Collect data for our query if dependencies were returned
@@ -115,9 +114,9 @@ class SteamworksInterface:
         # Add to callbacks count
         self.callbacks_count = self.callbacks_count + 1
         # Debug prints
-        logger.debug(f"Subscription action callback: {args}, {kwargs}")
-        logger.debug(f"result: {args[0].result}")
-        logger.debug(f"PublishedFileId: {args[0].publishedFileId}")
+        logger.debug(f"订阅操作回调: {args}, {kwargs}")
+        logger.debug(f"结果: {args[0].result}")
+        logger.debug(f"已发布的文件Id: {args[0].publishedFileId}")
         # Uncomment to see steam client install info of the mod
         # logger.info(
         #     self.steamworks.Workshop.GetItemInstallInfo(args[0].publishedFileId)
@@ -147,7 +146,7 @@ class SteamworksInterface:
             None
         """
         start_time = time()
-        logger.debug(f"Waiting {timeout} seconds for Steamworks API callbacks...")
+        logger.debug(f"等待 {timeout} 秒等待 Steamworks API 回调...")
         while self.steamworks_thread.is_alive():
             elapsed_time = time() - start_time
             if elapsed_time >= timeout:
@@ -170,7 +169,7 @@ class SteamworksAppDependenciesQuery:
         :param interval: time in seconds to sleep between multiple subsequent API calls
         """
         logger.info(
-            f"Creating SteamworksInterface and passing PublishedFileID(s) {self.pfid_or_pfids}"
+            f"创建 Steamworks 接口并传递 已发布的文件Id {self.pfid_or_pfids}"
         )
         # If the chunk passed is a single int, convert it into a list in an effort to simplify procedure
         if isinstance(self.pfid_or_pfids, int):
@@ -184,7 +183,7 @@ class SteamworksAppDependenciesQuery:
                 break
             else:
                 for pfid in self.pfid_or_pfids:
-                    logger.debug(f"ISteamUGC/GetAppDependencies Query: {pfid}")
+                    logger.debug(f"ISteamUGC/GetAppDependencies 查询: {pfid}")
                     steamworks_interface.steamworks.Workshop.SetGetAppDependenciesResultCallback(
                         steamworks_interface._cb_app_dependencies_result_callback
                     )
@@ -195,11 +194,11 @@ class SteamworksAppDependenciesQuery:
                 # Patience, but don't wait forever
                 steamworks_interface._wait_for_callbacks(timeout=60)
                 # This means that the callbacks thread has ended. We are done with Steamworks API now, so we dispose of everything.
-                logger.info("Thread completed. Unloading Steamworks...")
+                logger.info("线程已完成。卸载 Steamworks...")
                 steamworks_interface.steamworks_thread.join()
                 # Grab the data and return it
                 logger.warning(
-                    f"Returning {len(steamworks_interface.get_app_deps_query_result.keys())} results..."
+                    f"返回 {len(steamworks_interface.get_app_deps_query_result.keys())} 结果..."
                 )
                 return steamworks_interface.get_app_deps_query_result
         else:
@@ -259,7 +258,7 @@ class SteamworksSubscriptionHandler:
         """
 
         logger.info(
-            f"Creating SteamworksInterface and passing instruction {self.action}"
+            f"创建 Steamworks接口并传递指令 {self.action}"
         )
         # If the chunk passed is a single int, convert it into a list in an effort to simplify procedure
         if isinstance(self.pfid_or_pfids, int):
@@ -324,7 +323,7 @@ class SteamworksSubscriptionHandler:
                 # Patience, but don't wait forever
                 steamworks_interface._wait_for_callbacks(timeout=10)
                 # This means that the callbacks thread has ended. We are done with Steamworks API now, so we dispose of everything.
-                logger.info("Thread completed. Unloading Steamworks...")
+                logger.info("线程已完成。卸载 Steamworks...")
                 steamworks_interface.steamworks_thread.join()
                 # Unload Steamworks API
                 steamworks_interface.steamworks.unload()

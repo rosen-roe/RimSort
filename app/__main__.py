@@ -83,13 +83,13 @@ def handle_exception(
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
     else:  # Anything else, we want to log an error and notify the user
         logger.error(
-            "The main application loop has failed with an uncaught exception",
+            "主应用程序循环失败，出现未捕获的异常",
             exc_info=(exc_type, exc_value, exc_traceback),
         )
         show_fatal_error(
-            title="RimSort crashed",
-            text="The RimSort application crashed! Sorry for the inconvenience!",
-            information="Please contact us on the Discord/Github to report the issue.",
+            title="RimSort 崩溃",
+            text="RimSort 应用程序崩溃了！对此造成的不便，我们深表歉意！",
+            information="请在 Discord/Github 上与我们联系以报告问题。",
             details="".join(
                 traceback.format_exception(exc_type, exc_value, exc_traceback)
             ),
@@ -112,7 +112,7 @@ def main_thread() -> None:
         # Uncaught exceptions during the application loop are caught with excepthook
         stacktrace: str = ""
         if isinstance(e, SystemExit):
-            logger.warning("Exiting application")
+            logger.warning("退出应用程序")
         elif (
             e.__class__.__name__ == "HTTPError" or e.__class__.__name__ == "SSLError"
         ):  # requests.exceptions.HTTPError OR urllib3.exceptions.SSLError
@@ -127,22 +127,22 @@ def main_thread() -> None:
         else:
             stacktrace = traceback.format_exc()
         logger.error(
-            "The main application instantiation has failed with an uncaught exception:"
+            "主应用程序实例化失败，出现未捕获的异常:"
         )
         logger.error(stacktrace)
         show_fatal_error(details=stacktrace)
     finally:
         if "app_controller" in locals():
             try:
-                logger.debug("Stopping watchdog...")
+                logger.debug("停止监察程序...")
                 app_controller.shutdown_watchdog()
             except Exception as e:
                 stacktrace = traceback.format_exc()
-                logger.warning(f"Exception: {e}")
+                logger.warning(f"举例: {e}")
                 logger.warning(
-                    f"watchdog received the following exception while exiting: {stacktrace}"
+                    f"监察程序在退出时收到以下异常: {stacktrace}"
                 )
-        logger.info("Exiting application!")
+        logger.info("退出应用程序!")
         sys.exit()
 
 
@@ -203,7 +203,7 @@ if __name__ == "__main__":
     )
 
     if "__compiled__" not in globals():
-        logger.debug("Running using Python interpreter")
+        logger.debug("使用 Python 解释器运行")
     else:
         # Configure QtWebEngine locales path
         os.environ["QTWEBENGINE_LOCALES_PATH"] = str(
@@ -213,12 +213,12 @@ if __name__ == "__main__":
         # MacOS and Windows do not support fork, and can only use spawn
         if SYSTEM != "Linux":
             logger.warning(
-                "Non-Linux platform detected: using multiprocessing.freeze_support() & setting 'spawn' as MP method"
+                "检测到非 Linux 平台: 使用 multiprocessing.freeze_support() & 设置 'spawn' 为 MP 方法"
             )
             freeze_support()
             set_start_method("spawn")
 
-        logger.debug("Running using Nuitka bundle")
+        logger.debug("使用 Nuitka 捆绑包运行")
 
-    logger.debug("Initializing RimSort application")
+    logger.debug("初始化 RimSort 应用程序")
     main_thread()

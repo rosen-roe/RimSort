@@ -117,12 +117,12 @@ class MainWindow(QMainWindow):
         button_layout.addStretch()
 
         # Define button attributes
-        self.refresh_button = QPushButton("Refresh")
-        self.clear_button = QPushButton("Clear")
-        self.restore_button = QPushButton("Restore")
-        self.sort_button = QPushButton("Sort")
-        self.save_button = QPushButton("Save")
-        self.run_button = QPushButton("Run")
+        self.refresh_button = QPushButton("刷新列表")
+        self.clear_button = QPushButton("清除启用")
+        self.restore_button = QPushButton("还原列表")
+        self.sort_button = QPushButton("自动排序")
+        self.save_button = QPushButton("保存排序")
+        self.run_button = QPushButton("缘神启动！")
 
         buttons = [
             self.refresh_button,
@@ -167,7 +167,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle(f"RimSort {self.version_string}")
         self.setGeometry(100, 100, 1024, 768)
-        logger.debug("Finished MainWindow initialization")
+        logger.debug("完成主窗口初始化")
 
     def __disable_enable_widgets(self, enable: bool) -> None:
         # Disable widgets
@@ -210,16 +210,16 @@ class MainWindow(QMainWindow):
 
     def __ask_for_new_instance_name(self) -> str | None:
         instance_name, ok = show_dialogue_input(
-            title="Create new instance",
-            label="Input a unique name of new instance that is not already used:",
+            title="创建新实例",
+            label="输入尚未使用的新实例的唯一名称:",
         )
         return instance_name.strip() if ok else None
 
     def __ask_for_non_default_instance_name(self) -> str | None:
         while True:
             instance_name, ok = show_dialogue_input(
-                title="Provide instance name",
-                label='Input a unique name for the backed up instance that is not "Default"',
+                title="提供实例名称",
+                label='非“默认”的备份实例输入唯一名称',
             )
             if ok and instance_name.lower() != "default":
                 return instance_name
@@ -230,23 +230,23 @@ class MainWindow(QMainWindow):
         self, existing_instance_name: str, existing_instance_workshop_folder: str
     ) -> str:
         answer = show_dialogue_conditional(
-            title=f"Clone instance [{existing_instance_name}]",
+            title=f"克隆实例 [{existing_instance_name}]",
             text=(
-                "What would you like to do with the configured Workshop mods folder?"
+                "您想对配置的创意工坊模组文件夹执行什么操作?"
             ),
             information=(
-                f"Workshop folder: {existing_instance_workshop_folder}\n\n"
-                + "RimSort can copy all of your Workshop mods to the new instance's local mods folder. This will effectively "
-                + " convert any existing Steam client mods to SteamCMD mods that you can then  manage inside the new instance.\n\n"
-                + "Alternatively, you may keep your old Steam workshop folder preference. You can always change this later in the settings.\n\n"
-                + "How would you like to proceed?"
+                f"创意工坊文件夹: {existing_instance_workshop_folder}\n\n"
+                + "RimSort  可以将所有创意工坊模组复制到新实例的本地模组文件夹中。这将有效地将\n\n"
+                + "任何已存在的Steam客户端模组转换为SteamCMD模组，然后您可以在新实例中管理这些模组\n\n"
+                + "或者，您可以保留旧的Steam创意工坊文件夹偏好。您可以随时在以后的设置中更改此设置\n\n"
+                + "您希望如何进行?"
             ),
             button_text_override=[
-                "Convert to SteamCMD",
-                "Keep Workshop Folder",
+                "转换为SteamCMD",
+                "保留创意工坊文件",
             ],
         )
-        return answer or "Cancelled"
+        return answer or "取消"
 
     def __backup_existing_instance(self, instance_name: str) -> None:
         # Get instance data from Settings
@@ -256,24 +256,24 @@ class MainWindow(QMainWindow):
         if instance_name == "Default":
             new_instance_name = self.__ask_for_non_default_instance_name()
             if not new_instance_name:
-                logger.info("User cancelled operation")
+                logger.info("用户取消操作")
                 return
             instance_name = new_instance_name
 
         # Determine instance data to save
         if instance is None:
-            logger.error(f"Instance [{instance_name}] not found in Settings")
+            logger.error(f"实例[{instance_name}]在设置中找不到")
             return
 
         instance_controller = InstanceController(instance)
         # Prompt user to select output path for instance archive
         output_path = show_dialogue_file(
-            mode="save",
-            caption="Select output path for instance archive",
+            mode="保存",
+            caption="选择实例存档的输出路径",
             _dir=str(AppInfo().app_storage_folder),
             _filter="Zip files (*.zip)",
         )
-        logger.info(f"Selected path: {output_path}")
+        logger.info(f"所选路径: {output_path}")
         if output_path:
             try:
                 self.main_content_panel.do_threaded_loading_animation(
@@ -284,38 +284,38 @@ class MainWindow(QMainWindow):
                         instance_controller.compress_to_archive,
                         output_path,
                     ),
-                    text=f"Compressing [{instance_name}] instance folder to archive...",
+                    text=f"压缩[{instance_name}]要存档的实例文件夹...",
                 )
             except Exception as e:
                 show_fatal_error(
-                    title="Error compressing instance",
-                    text=f"An error occurred while compressing instance folder: {e}",
-                    information="Please check the logs for more information.",
+                    title="压缩实例时出错",
+                    text=f"压缩实例文件夹时出错: {e}",
+                    information="请查看日志以获取更多信息。",
                     details=format_exc(),
                 )
         else:
-            logger.warning("Backup cancelled: User cancelled selection...")
+            logger.warning("备份已取消：用户取消选择...")
             return
 
     def __restore_instance_from_archive(self) -> None:
         # Prompt user to select input path for instance archive
         input_path = show_dialogue_file(
-            mode="open",
-            caption="Select input path for instance archive",
+            mode="打开",
+            caption="选择实例存档的输入路径",
             _dir=str(AppInfo().app_storage_folder),
             _filter="Zip files (*.zip)",
         )
 
         if input_path is None:
-            logger.info("User cancelled operation. Input path was None")
+            logger.info("用户取消的操作。输入路径为“无”")
             return
-        logger.info(f"Selected path: {input_path}")
+        logger.info(f"所选路径: {input_path}")
 
         if not os.path.exists(input_path):
-            logger.error(f"Archive not found at path: {input_path}")
+            logger.error(f"在路径中找不到存档: {input_path}")
             show_warning(
-                title="Error restoring instance",
-                text=f"Archive not found at path: {input_path}",
+                title="还原实例时出错",
+                text=f"在路径中找不到存档: {input_path}",
             )
             return
 
@@ -326,26 +326,26 @@ class MainWindow(QMainWindow):
             # Handled in controller. Gracefully fail.
             return
         except Exception as e:
-            logger.error(f"An error occurred while reading instance archive: {e}")
+            logger.error(f"读取实例存档时出错: {e}")
             show_fatal_error(
-                title="Error restoring instance",
-                text=f"An error occurred while reading instance archive: {e}",
+                title="还原实例时出错",
+                text=f"读取实例存档时出错: {e}",
                 details=format_exc(),
             )
             return
 
         if os.path.exists(instance_controller.instance_folder_path):
             answer = show_dialogue_conditional(
-                title="Instance folder exists",
-                text=f"Instance folder already exists: {instance_controller.instance_folder_path}",
-                information="Do you want to continue and replace the existing instance folder?",
+                title="实例文件夹存在",
+                text=f"实例文件夹已存在: {instance_controller.instance_folder_path}",
+                information="是否要继续并替换已存在实例文件夹？",
                 button_text_override=[
-                    "Replace",
+                    "替换",
                 ],
             )
 
-            if answer != "Replace":
-                logger.info("User cancelled instance extraction.")
+            if answer != "替换":
+                logger.info("用户取消了实例提取。")
                 return
 
         self.main_content_panel.do_threaded_loading_animation(
@@ -354,7 +354,7 @@ class MainWindow(QMainWindow):
                 input_path,
             ),
             gif_path=str(AppInfo().theme_data_folder / "default-icons" / "rimsort.gif"),
-            text=f"Restoring instance [{instance_controller.instance.name}] from archive...",
+            text=f"从存档还原实例[{instance_controller.instance.name}]...",
         )
 
         # Check that the instance folder exists. If it does, update Settings with the instance data
@@ -362,13 +362,13 @@ class MainWindow(QMainWindow):
             cleared_paths = instance_controller.validate_paths()
             if cleared_paths:
                 logger.warning(
-                    f"Instance folder paths not found: {', '.join(cleared_paths)}"
+                    f"找不到实例文件夹路径: {', '.join(cleared_paths)}"
                 )
                 show_warning(
-                    title="Invalid instance folder paths",
-                    text="Invalid instance folder paths",
-                    information="Some folder paths from the restored instance are invalid and were cleared. Please reconfigure them in the settings",
-                    details=f"Invalid paths: {', '.join(cleared_paths)}",
+                    title="无效的实例文件夹路径",
+                    text="无效的实例文件夹路径",
+                    information="还原实例中的某些文件夹路径无效，可能已被清除。请在设置中重新配置它们",
+                    details=f"无效路径: {', '.join(cleared_paths)}",
                 )
 
             steamcmd_link_path = str(
@@ -384,33 +384,33 @@ class MainWindow(QMainWindow):
                 os.path.exists(steamcmd_link_path)
                 and instance_controller.instance.local_folder != ""
             ):
-                logger.info("Restoring steamcmd symlink...")
+                logger.info("恢复steamcmd符号链接...")
                 self.steamcmd_wrapper.check_symlink(
                     steamcmd_link_path, instance_controller.instance.local_folder
                 )
             elif not os.path.exists(steamcmd_link_path):
-                logger.info("Skipping steamcmd symlink restoration")
+                logger.info("跳过steamcmd符号链接修复")
             else:
                 show_warning(
-                    title="Couldn't restore steamcmd symlink/junction",
-                    text="Couldn't restore steamcmd symlink/junction",
-                    information="The steamcmd symlink/junction could not be restored as the local folder is not set or invalid. The symlink/junction will need to be manually recreated.",
+                    title="无法修复steamcmd符号链接/连接",
+                    text="无法修复steamcmd符号链接/连接",
+                    information="由于本地文件夹未设置或无效，因此无法修复steamcmd符号链接/连接。需要手动重新创建符号链接/连接。",
                 )
                 logger.warning(
-                    "Skipping steamcmd symlink restoration: Local folder not set. The symlink will need to be manually updated."
+                    "跳过steamcmd符号链接修复：未设置本地文件夹。符号链接需要手动更新。"
                 )
 
             self.settings_controller.set_instance(instance_controller.instance)
             self.__switch_to_instance(instance_controller.instance.name)
         else:
             show_warning(
-                title="Error restoring instance",
-                text=f"An error occurred while restoring instance [{instance_controller.instance.name}].",
-                information="The instance folder was not found after extracting the archive. Perhaps the archive is corrupt or the instance name is invalid.",
+                title="还原实例时出错",
+                text=f"还原实例时出错[{instance_controller.instance.name}].",
+                information="解压缩存档后未找到实例文件夹。存档可能已损坏或实例名称无效。",
             )
 
             logger.warning(
-                "Restore cancelled: Instance folder not found after extraction..."
+                "还原已取消：提取后未找到实例文件夹..."
             )
 
     def __clone_existing_instance(self, existing_instance_name: str) -> None:
@@ -422,17 +422,17 @@ class MainWindow(QMainWindow):
                     target_game_folder
                 ):
                     logger.info(
-                        f"Replacing existing game folder at {target_game_folder}"
+                        f"替换{target_game_folder}处的已存在游戏文件夹"
                     )
                     rmtree(target_game_folder)
                 logger.info(
-                    f"Copying game folder from {existing_instance_game_folder} to {target_game_folder}"
+                    f"将游戏文件夹从{existing_instance_game_folder}复制到{target_game_folder}"
                 )
                 copytree(
                     existing_instance_game_folder, target_game_folder, symlinks=True
                 )
             except Exception as e:
-                logger.error(f"An error occurred while copying game folder: {e}")
+                logger.error(f"复制游戏文件夹时出错: {e}")
 
         def copy_config_folder(
             existing_instance_config_folder: str, target_config_folder: str
@@ -442,11 +442,11 @@ class MainWindow(QMainWindow):
                     target_config_folder
                 ):
                     logger.info(
-                        f"Replacing existing config folder at {target_config_folder}"
+                        f"替换{target_config_folder}处的已存在配置文件夹"
                     )
                     rmtree(target_config_folder)
                 logger.info(
-                    f"Copying config folder from {existing_instance_config_folder} to {target_config_folder}"
+                    f"将配置文件夹从{existing_instance_config_folder}复制到{target_config_folder}"
                 )
                 copytree(
                     existing_instance_config_folder,
@@ -454,7 +454,7 @@ class MainWindow(QMainWindow):
                     symlinks=True,
                 )
             except Exception as e:
-                logger.error(f"An error occurred while copying config folder: {e}")
+                logger.error(f"复制配置文件夹时出错: {e}")
 
         def copy_local_folder(
             existing_instance_local_folder: str, target_local_folder: str
@@ -464,11 +464,11 @@ class MainWindow(QMainWindow):
                     target_local_folder
                 ):
                     logger.info(
-                        f"Replacing existing local folder at {target_local_folder}"
+                        f"替换{target_local_folder}处的已存在本地文件夹"
                     )
                     rmtree(target_local_folder)
                 logger.info(
-                    f"Copying local folder from {existing_instance_local_folder} to {target_local_folder}"
+                    f"将本地文件夹从{existing_instance_local_folder}复制到{target_local_folder}"
                 )
                 copytree(
                     existing_instance_local_folder,
@@ -476,7 +476,7 @@ class MainWindow(QMainWindow):
                     symlinks=True,
                 )
             except Exception as e:
-                logger.error(f"An error occurred while copying local folder: {e}")
+                logger.error(f"复制本地文件夹时出错: {e}")
 
         def copy_workshop_mods_to_local(
             existing_instance_workshop_folder: str, target_local_folder: str
@@ -485,21 +485,21 @@ class MainWindow(QMainWindow):
                 if not os.path.exists(target_local_folder):
                     os.mkdir(target_local_folder)
                 logger.info(
-                    f"Cloning Workshop mods from {existing_instance_workshop_folder} to {target_local_folder}"
+                    f"将创意工坊模组从{existing_instance_workshop_folder}克隆到{target_local_folder}"
                 )
                 # Copy each subdirectory of the existing Workshop folder to the new local mods folder
                 for subdir in os.listdir(existing_instance_workshop_folder):
                     if os.path.isdir(
                         os.path.join(existing_instance_workshop_folder, subdir)
                     ):
-                        logger.debug(f"Cloning Workshop mod: {subdir}")
+                        logger.debug(f"克隆创意工坊模组: {subdir}")
                         copytree(
                             os.path.join(existing_instance_workshop_folder, subdir),
                             os.path.join(target_local_folder, subdir),
                             symlinks=True,
                         )
             except Exception as e:
-                logger.error(f"An error occurred while cloning Workshop mods: {e}")
+                logger.error(f"克隆创意工坊模组时出错: {e}")
 
         def clone_essential_paths(
             existing_instance_game_folder: str,
@@ -560,20 +560,20 @@ class MainWindow(QMainWindow):
             and new_instance_name not in current_instances
         ):
             new_instance_path = str(
-                Path(AppInfo().app_storage_folder) / "instances" / new_instance_name
+                Path(AppInfo().app_storage_folder) / "实例" / new_instance_name
             )
             # Prompt user with the existing instance configuration and confirm that they would like to clone it
             answer = show_dialogue_confirmation(
-                title=f"Clone instance [{existing_instance_name}]",
-                text=f"Would you like to clone instance [{existing_instance_name}] to create new instance [{new_instance_name}]?\n"
-                + "This will clone the instance's data!"
+                title=f"克隆实例[{existing_instance_name}]",
+                text=f"是否要克隆实例[{existing_instance_name}]以创建新实例[{new_instance_name}]?\n"
+                + "这将克隆实例的数据!"
                 + "\n\n",
-                information=f"Game folder:\n{existing_instance_game_folder if existing_instance_game_folder else '<None>'}\n"
-                + f"\nLocal folder:\n{existing_instance_local_folder if existing_instance_local_folder else '<None>'}\n"
-                + f"\nWorkshop folder:\n{existing_instance_workshop_folder if existing_instance_workshop_folder else '<None>'}\n"
-                + f"\nConfig folder:\n{existing_instance_config_folder if existing_instance_config_folder else '<None>'}\n"
-                + f"\nRun args:\n{'[' + ' '.join(existing_instance_run_args) + ']' if existing_instance_run_args else '<None>'}\n"
-                + "\nSteamCMD install path (steamcmd + steam folders will be cloned):"
+                information=f"游戏文件夹:\n{existing_instance_game_folder if existing_instance_game_folder else '<None>'}\n"
+                + f"\n本地文件夹:\n{existing_instance_local_folder if existing_instance_local_folder else '<None>'}\n"
+                + f"\n创意工坊文件夹:\n{existing_instance_workshop_folder if existing_instance_workshop_folder else '<None>'}\n"
+                + f"\n配置文件夹:\n{existing_instance_config_folder if existing_instance_config_folder else '<None>'}\n"
+                + f"\n运行参数:\n{'[' + ' '.join(existing_instance_run_args) + ']' if existing_instance_run_args else '<None>'}\n"
+                + "\nSteamCMD 安装路径（steamcmd + steam 文件夹将被克隆）:"
                 + f"\n{existing_instance_steamcmd_install_path if existing_instance_steamcmd_install_path else '<None>'}\n",
             )
             if answer == "&Yes":
@@ -596,7 +596,7 @@ class MainWindow(QMainWindow):
                         existing_instance_config_folder,
                         target_config_folder,
                     ),
-                    text=f"Cloning RimWorld game / config folders from [{existing_instance_name}] to [{new_instance_name}] instance...",
+                    text=f"将 RimWorld 游戏/配置文件夹从[{existing_instance_name}]实例克隆到[{new_instance_name}]实例...",
                 )
                 # Clone the existing local_folder to the new instance
                 if existing_instance_local_folder:
@@ -614,7 +614,7 @@ class MainWindow(QMainWindow):
                                 existing_instance_local_folder,
                                 target_local_folder,
                             ),
-                            text=f"Cloning local mods folder from [{existing_instance_name}] instance to [{new_instance_name}] instance...",
+                            text=f"将本地模组文件夹从[{existing_instance_name}]实例克隆到[{new_instance_name}]实例...",
                         )
                 # Clone the existing workshop_folder to the new instance's local mods folder
                 if existing_instance_workshop_folder:
@@ -623,7 +623,7 @@ class MainWindow(QMainWindow):
                         existing_instance_name=existing_instance_name,
                         existing_instance_workshop_folder=existing_instance_workshop_folder,
                     )
-                    if answer == "Convert to SteamCMD":
+                    if answer == "转换为SteamCMD":
                         if os.path.exists(
                             existing_instance_workshop_folder
                         ) and os.path.isdir(existing_instance_workshop_folder):
@@ -638,14 +638,14 @@ class MainWindow(QMainWindow):
                                     existing_instance_workshop_folder,
                                     target_local_folder,
                                 ),
-                                text=f"Cloning Workshop mods from [{existing_instance_name}] instance to [{new_instance_name}] instance's local mods...",
+                                text=f"将创意工坊从[{existing_instance_name}]实例克隆到[{new_instance_name}]实例的本地模组...",
                             )
                         else:
                             show_warning(
-                                title="Workshop mods not found",
-                                text=f"Workshop mods folder at [{existing_instance_workshop_folder}] not found.",
+                                title="未找到创意工坊模组",
+                                text=f"找不到[{existing_instance_workshop_folder}]处的创意工坊模组文件夹。",
                             )
-                    elif answer == "Keep Workshop Folder":
+                    elif answer == "保留创意工坊文件夹":
                         target_workshop_folder = str(existing_instance_workshop_folder)
                 # If the instance has a 'steamcmd' folder, clone it to the new instance
                 steamcmd_install_path = str(
@@ -661,11 +661,11 @@ class MainWindow(QMainWindow):
                         target_steamcmd_install_path
                     ):
                         logger.info(
-                            f"Replacing existing steamcmd folder at {target_steamcmd_install_path}"
+                            f"替换{target_steamcmd_install_path}处的已存在steamcmd文件夹"
                         )
                         rmtree(target_steamcmd_install_path)
                     logger.info(
-                        f"Copying steamcmd folder from {steamcmd_install_path} to {target_steamcmd_install_path}"
+                        f"将steamcmd文件夹从 {steamcmd_install_path} 复制到 {target_steamcmd_install_path}"
                     )
                     copytree(
                         steamcmd_install_path,
@@ -684,11 +684,11 @@ class MainWindow(QMainWindow):
                         target_steam_install_path
                     ):
                         logger.info(
-                            f"Replacing existing steam folder at {target_steam_install_path}"
+                            f"替换{target_steam_install_path}处的已存在 Steam 文件夹"
                         )
                         rmtree(target_steam_install_path)
                     logger.info(
-                        f"Copying steam folder from {steam_install_path} to {target_steam_install_path}"
+                        f"将steam文件夹从{steam_install_path}复制到{target_steam_install_path}"
                     )
                     copytree(
                         steam_install_path, target_steam_install_path, symlinks=True
@@ -721,12 +721,12 @@ class MainWindow(QMainWindow):
                 )
         elif new_instance_name:
             show_warning(
-                title="Error cloning instance",
-                text="Unable to clone instance.",
-                information="Please enter a valid, unique instance name. It cannot be 'Default' or empty.",
+                title="克隆实例时出错",
+                text="无法克隆实例。",
+                information="请输入有效且唯一的实例名称。它不能是“默认”或空。",
             )
         else:
-            logger.debug("User cancelled clone operation")
+            logger.debug("用户取消克隆操作")
 
     def __create_new_instance(
         self, instance_name: str = "", instance_data: dict[str, Any] = {}
@@ -735,7 +735,7 @@ class MainWindow(QMainWindow):
             # Sanitize the input so that it does not produce any KeyError down the road
             new_instance_name = self.__ask_for_new_instance_name()
             if not new_instance_name:
-                logger.info("User cancelled operation")
+                logger.info("用户取消操作")
                 return
             instance_name = new_instance_name
         current_instances = list(self.settings_controller.settings.instances.keys())
@@ -758,9 +758,9 @@ class MainWindow(QMainWindow):
             if instance_data.get("game_folder") and instance_data.get("config_folder"):
                 # Prompt the user if they would like to automatically generate run args for the instance
                 answer = show_dialogue_conditional(
-                    title=f"Create new instance [{instance_name}]",
-                    text="Would you like to automatically generate run args for the new instance?",
-                    information="This will try to generate run args for the new instance based on the configured Game/Config folders.",
+                    title=f"创建新实例[{instance_name}]",
+                    text="是否要为新实例自动生成运行参数？",
+                    information="这将尝试根据配置的游戏/配置文件夹为新实例生成运行参数。",
                 )
                 if answer == "&Yes":
                     # Append new run args to the existing run args
@@ -791,33 +791,33 @@ class MainWindow(QMainWindow):
             self.__switch_to_instance(instance_name)
         else:
             show_warning(
-                title="Error creating instance",
-                text="Unable to create new instance.",
-                information="Please enter a valid, unique instance name. It cannot be 'Default' or empty.",
+                title="创建实例时出错",
+                text="无法创建新实例。",
+                information="请输入有效且唯一的实例名称。它不能是“默认”或空。",
             )
 
     def __delete_current_instance(self) -> None:
         if self.settings_controller.settings.current_instance == "Default":
             show_warning(
-                title="Problem deleting instance",
-                text=f"Unable to delete instance {self.settings_controller.settings.current_instance}.",
-                information="The default instance cannot be deleted.",
+                title="删除实例时出现问题",
+                text=f"无法删除实例 {self.settings_controller.settings.current_instance} 。",
+                information="无法删除默认实例。",
             )
             return
         elif not self.settings_controller.settings.instances.get(
             self.settings_controller.settings.current_instance
         ):
             show_fatal_error(
-                title="Error deleting instance",
-                text=f"Unable to delete instance {self.settings_controller.settings.current_instance}.",
-                information="The selected instance does not exist.",
+                title="删除实例时出错",
+                text=f"无法删除实例 {self.settings_controller.settings.current_instance} 。",
+                information="所选实例不存在。",
             )
             return
         else:
             answer = show_dialogue_confirmation(
-                title=f"Delete instance {self.settings_controller.settings.current_instance}",
-                text="Are you sure you want to delete the selected instance and all of its data?",
-                information="This action cannot be undone.",
+                title=f"删除实例{self.settings_controller.settings.current_instance}",
+                text="是否确实要删除所选实例及其所有数据？",
+                information="此操作无法撤消。",
             )
             if answer == "&Yes":
                 try:
@@ -825,18 +825,18 @@ class MainWindow(QMainWindow):
                         str(
                             Path(
                                 AppInfo().app_storage_folder
-                                / "instances"
+                                / "实例"
                                 / self.settings_controller.settings.current_instance
                             )
                         )
                     )
                 except Exception as e:
-                    logger.error(f"Error deleting instance: {e}")
+                    logger.error(f"删除实例时出错: {e}")
                 # Remove instance from settings and reset to Default
                 self.settings_controller.settings.instances.pop(
                     self.settings_controller.settings.current_instance
                 )
-                self.__switch_to_instance("Default")
+                self.__switch_to_instance("默认")
 
     def __switch_to_instance(self, instance: str) -> None:
         self.stop_watchdog_if_running()
@@ -848,7 +848,7 @@ class MainWindow(QMainWindow):
         self.initialize_content(is_initial=False)
 
     def initialize_watchdog(self) -> None:
-        logger.info("Initializing watchdog FS Observer")
+        logger.info("初始化文件系统观察者")
         # INITIALIZE WATCHDOG - WE WAIT TO START UNTIL DONE PARSING MOD LIST
         # Instantiate event handler
         # Pass a mapper of metadata-containing About.xml or Scenario.rsc files to their mod uuids
@@ -889,10 +889,10 @@ class MainWindow(QMainWindow):
             if self.watchdog_event_handler.watchdog_observer is not None:
                 self.watchdog_event_handler.watchdog_observer.start()  # type: ignore #Upstream not typed
             else:
-                logger.warning("Watchdog Observer is None. Unable to start.")
+                logger.warning("文件系统观察者为空，无法启动")
         except Exception as e:
             logger.warning(
-                f"Unable to initialize watchdog Observer due to exception: {str(e)}"
+                f"由于异常，无法初始化文件系统观察者: {str(e)}"
             )
 
     def stop_watchdog_if_running(self) -> None:

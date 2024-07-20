@@ -8,7 +8,7 @@ from app.utils.metadata import MetadataManager
 def do_alphabetical_sort(
     dependency_graph: dict[str, set[str]], active_mods_uuids: set[str]
 ) -> List[str]:
-    logger.info(f"Starting Alphabetical sort for {len(dependency_graph)} mods")
+    logger.info(f"开始按字母顺序排序 {len(dependency_graph)} 个模组")
     # Cache MetadataManager instance
     metadata_manager = MetadataManager.instance()
     # Get an alphabetized list of dependencies
@@ -57,7 +57,7 @@ def do_alphabetical_sort(
         if package_id in active_mods_packageid_to_uuid:
             mod_uuid = active_mods_packageid_to_uuid[package_id]
             reordered.append(mod_uuid)
-    logger.info(f"Finished Alphabetical sort with {len(reordered)} mods")
+    logger.info(f"完成 {len(reordered)} 个模组的字母排序")
     return reordered
 
 

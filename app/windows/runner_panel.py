@@ -40,7 +40,7 @@ class RunnerPanel(QWidget):
     ):
         super().__init__()
 
-        logger.debug("Initializing RunnerPanel")
+        logger.debug("初始化运行器面板")
         self.ansi_escape = compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
         self.system = system()
         self.installEventFilter(self)
@@ -84,7 +84,7 @@ class RunnerPanel(QWidget):
         self.clear_runner_button.setIcon(self.clear_runner_icon)
         self.clear_runner_button.clicked.connect(self._do_clear_runner)
         self.clear_runner_button.setToolTip(
-            "Clear the text currently displayed by the runner"
+            "清除运行器当前显示的文本"
         )
         # Restart btn
         self.restart_process_icon = QIcon(
@@ -94,7 +94,7 @@ class RunnerPanel(QWidget):
         self.restart_process_button.setIcon(self.restart_process_icon)
         self.restart_process_button.clicked.connect(self._do_restart_process)
         self.restart_process_button.setToolTip(
-            "Re-run the process last used by the runner"
+            "重新运行运行器上次使用的进程"
         )
         self.restart_process_button.hide()  # Hide this by default - it will be enabled if self.execute()
         # Kill btn
@@ -105,7 +105,7 @@ class RunnerPanel(QWidget):
         self.kill_process_button.setIcon(self.kill_process_icon)
         self.kill_process_button.clicked.connect(self._do_kill_process)
         self.kill_process_button.setToolTip(
-            "Kill a process currently being executed by the runner"
+            "终止运行器当前正在执行的进程"
         )
         self.kill_process_button.hide()  # Hide this by default - it will be enabled if self.execute()
         # Save process output btn
@@ -166,7 +166,7 @@ class RunnerPanel(QWidget):
 
     def _do_restart_process(self) -> None:
         if self.process_last_command != "":
-            self.message("\nRestarting last used process...\n")
+            self.message("\n重新启动上次使用的进程...\n")
             self.execute(self.process_last_command, self.process_last_args)
 
     def _do_save_runner_output(self) -> None:
@@ -175,20 +175,20 @@ class RunnerPanel(QWidget):
         file. The current list does not need to have been saved.
         """
         if self.text != "":
-            logger.info("Opening file dialog to specify output file")
+            logger.info("打开文件对话框以指定输出文件")
             file_path = show_dialogue_file(
                 mode="save",
                 caption="Save runner output",
                 _dir=os.path.expanduser("~"),
                 _filter="text files (*.txt)",
             )
-            logger.info(f"Selected path: {file_path}")
+            logger.info(f"所选路径: {file_path}")
             if file_path:
                 logger.info(
-                    "Exporting current runner output to the designated txt file"
+                    "将当前运行器输出导出到指定的 txt 文件"
                 )
                 with open(file_path, "w", encoding="utf-8") as outfile:
-                    logger.info("Writing to file")
+                    logger.info("写入文件")
                     outfile.write(self.text.toPlainText())
 
     def change_progress_bar_color(self, state: str) -> None:
@@ -212,7 +212,7 @@ class RunnerPanel(QWidget):
         progress_bar:Optional int, value for the progress bar, -1 to not set value
         additional:Optional, data to parse to the runner
         """
-        logger.info("RunnerPanel subprocess initiating...")
+        logger.info("运行器面板子进程正在启动...")
         self.restart_process_button.show()
         self.kill_process_button.show()
         self.process_last_command = command
@@ -232,7 +232,7 @@ class RunnerPanel(QWidget):
                     self.progress_bar.setRange(0, progress_bar)
                     self.progress_bar.setFormat("%v/%m")
         if not self.todds_dry_run_support:
-            self.message(f"\nExecuting command:\n{command} {' '.join(args)}\n\n")
+            self.message(f"\n执行命令:\n{command} {' '.join(args)}\n\n")
         self.process.start()
 
     def handle_output(self) -> None:
@@ -332,7 +332,7 @@ class RunnerPanel(QWidget):
         if not self.todds_dry_run_support:
             # Determine message based on whether the process was killed
             self.message(
-                "Subprocess killed!" if self.process_killed else "Subprocess completed."
+                "子进程终止！" if self.process_killed else "子进程已完成。"
             )
             self.process_killed = False  # Reset the kill flag
 
@@ -384,8 +384,8 @@ class RunnerPanel(QWidget):
                     # Prompt user for action on failed mods
                     if (
                         show_dialogue_conditional(
-                            title="SteamCMD downloader",
-                            text="SteamCMD failed to download mod(s)! Would you like to retry download of the mods that failed?\n\nClick 'Show Details' to see a list of mods that failed.",
+                            title="SteamCMD 下载器",
+                            text="SteamCMD 无法下载模组！是否要重试下载失败的模组？\n\n单击'显示详细信息'以查看失败的模组列表。",
                             details=details,
                         )
                         == "&Yes"
@@ -394,13 +394,13 @@ class RunnerPanel(QWidget):
                             self.steamcmd_download_tracking
                         )
                     else:
-                        logger.debug("User declined re-download of failed mods.")
+                        logger.debug("用户拒绝重新下载失败的模组。")
                 else:
-                    self.change_progress_bar_color("success")
+                    self.change_progress_bar_color("成功")
 
             # Process-specific logic for todds
             if "todds" in self.process.program():
-                self.change_progress_bar_color("success")
+                self.change_progress_bar_color("成功")
 
         # Cleanup process
         self.process.terminate()

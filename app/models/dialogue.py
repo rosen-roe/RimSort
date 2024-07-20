@@ -32,7 +32,7 @@ def show_dialogue_confirmation(
     :param details: text to pass to setDetailedText
     """
     logger.info(
-        f"Showing dialogue box with input: [{title}], [{text}], [{information}] [{details}]"
+        f"显示带有输入的对话框: [{title}], [{text}], [{information}] [{details}]"
     )
 
     # Set up the message box
@@ -135,7 +135,7 @@ def show_dialogue_input(
     parent: Optional[QWidget] = None,
 ) -> Tuple[str, bool]:
     warnings.warn(
-        "May deprecate show_dialogue_input. Currently it is just a wrapper around a single function"
+        "可能会弃用 show_dialogue_input 。目前，它只是围绕单个函数的包装器"
     )
     return QInputDialog().getText(parent, title, label, text=text)
 
@@ -152,7 +152,7 @@ def show_dialogue_file(
         path, _ = QFileDialog.getSaveFileName(caption=caption, dir=_dir, filter=_filter)
     else:
         # Handle error or unknown mode
-        logger.error("File dialogue mode not implemented.")
+        logger.error("未实现文件对话模式。")
         return None
     return str(Path(os.path.normpath(path)).resolve()) if path != "" else None
 
@@ -192,7 +192,7 @@ def show_information(
         info_message_box.setDetailedText(details)
 
     # Show the message box
-    logger.debug("Finished showing information box")
+    logger.debug("已完成信息框显示")
     info_message_box.exec_()
 
 
@@ -216,7 +216,7 @@ def show_warning(
     warning_message_box = QMessageBox()
     warning_message_box.setTextFormat(Qt.TextFormat.RichText)
     warning_message_box.setIcon(QMessageBox.Icon.Warning)
-    warning_message_box.setObjectName("dialogue")
+    warning_message_box.setObjectName("对话")
     if title:
         warning_message_box.setWindowTitle(title)
     else:
@@ -231,7 +231,7 @@ def show_warning(
         warning_message_box.setDetailedText(details)
 
     # Show the message box
-    logger.debug("Finished showing warning box")
+    logger.debug("已完成警告框显示")
     warning_message_box.exec_()
 
 
@@ -273,5 +273,5 @@ def show_fatal_error(
         fatal_message_box.setDetailedText(details)
 
     # Show the message box
-    logger.debug("Finished showing fatal error box")
+    logger.debug("已完成错误框显示")
     fatal_message_box.exec_()

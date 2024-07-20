@@ -21,7 +21,7 @@ class InvalidArchivePathError(ValueError):
     """Raised when the provided archive path is invalid"""
 
     def __init__(self, archive_path: str) -> None:
-        super().__init__(f"Invalid archive path: {archive_path}")
+        super().__init__(f"存档路径无效: {archive_path}")
 
 
 class InstanceController(QObject):
@@ -41,14 +41,14 @@ class InstanceController(QObject):
     def __new__(cls, instance: Instance | str) -> Self:
         if isinstance(instance, str):
             if not cls._validate_archive_path(instance):
-                logger.error(f"Invalid archive path: {instance}")
+                logger.error(f"存档路径无效: {instance}")
                 show_warning(
-                    title="Invalid archive path",
-                    text="The provided archive path is invalid.",
-                    information="Please provide a valid archive path.",
+                    title="存档路径无效",
+                    text="提供的存档路径无效。",
+                    information="请提供有效的存档路径。",
                 )
 
-                raise InvalidArchivePathError("Invalid archive path")
+                raise InvalidArchivePathError("存档路径无效")
         return super().__new__(cls)
 
     def __init__(self, instance: Instance | str):
@@ -63,10 +63,10 @@ class InstanceController(QObject):
             with ZipFile(archive_path, "r") as archive:
                 self.from_bytes(archive.read("instance.json"))
         except Exception as e:
-            logger.error(f"An error occurred while reading instance archive: {e}")
+            logger.error(f"读取实例存档时出错: {e}")
             show_fatal_error(
-                title="Error restoring instance",
-                text=f"An error occurred while reading instance archive: {e}",
+                title="还原实例时出错",
+                text=f"读取实例存档时出错: {e}",
                 details=format_exc(),
             )
 
@@ -103,7 +103,7 @@ class InstanceController(QObject):
         :param archive_path: The path to the archive to extract
         :type archive_path: str
         """
-        logger.info(f"Extracting instance folder from archive: {archive_path}")
+        logger.info(f"从存档中提取实例文件夹: {archive_path}")
         # Extract instance folder from archive.
         # Parse the "instance.json" file to get the instance data.
         # Use the "name" key from the instance data to use as the instance folder.
@@ -111,7 +111,7 @@ class InstanceController(QObject):
 
         if os.path.exists(self.instance_folder_path) and delete_old:
             logger.info(
-                "Deleting existing instance folder: {self.instance_folder_path}"
+                "删除现有实例文件夹: {self.instance_folder_path}"
             )
 
             def ignore_extended_attributes(
@@ -127,20 +127,20 @@ class InstanceController(QObject):
                 )
             except Exception as e:
                 logger.error(
-                    f"An error occurred while deleting existing instance folder: {e}"
+                    f"删除现有实例文件夹时出错: {e}"
                 )
 
         try:
-            logger.info(f"Extracting instance folder from archive: {archive_path}")
-            logger.info(f"Destination instance folder: {self.instance_folder_path}")
+            logger.info(f"从存档中提取实例文件夹: {archive_path}")
+            logger.info(f"目标实例文件夹: {self.instance_folder_path}")
             with ZipFile(archive_path, "r") as archive:
                 for info in archive.infolist():
                     if info.filename == "instance.json":
                         continue
-                    logger.debug(f"Extracting file: {info.filename}")
+                    logger.debug(f"正在提取文件: {info.filename}")
                     archive.extract(info, path=self.instance_folder_path)
         except Exception as e:
-            logger.error(f"An error occurred while extracting instance folder: {e}")
+            logger.error(f"解压实例文件夹时出错: {e}")
 
     def compress_to_archive(self, output_path: str) -> None:
         # Compress instance folder to archive.
@@ -150,14 +150,14 @@ class InstanceController(QObject):
             output_path += ".zip"
 
         try:
-            logger.info(f"Compressing instance folder to archive: {output_path}")
+            logger.info(f"压缩实例文件夹存档: {output_path}")
             with ZipFile(output_path, "w") as archive:
                 for root, dirs, files in os.walk(
                     self.instance_folder_path, topdown=True, followlinks=False
                 ):
                     # Skip windows junctions (and symlinks)
                     if Path(root).absolute() != Path(root).resolve():
-                        logger.debug(f"Skipping symlinked directory: {root}")
+                        logger.debug(f"跳过符号链接目录: {root}")
                         # Prune the search
                         dirs.clear()
                         files.clear()
@@ -168,18 +168,18 @@ class InstanceController(QObject):
                             dir_path,
                             os.path.relpath(dir_path, self.instance_folder_path),
                         )
-                        logger.debug(f"Added directory to archive: {dir_path}")
+                        logger.debug(f"将目录添加到存档中: {dir_path}")
                     for file in files:
                         file_path = os.path.join(root, file)
                         archive.write(
                             file_path,
                             os.path.relpath(file_path, self.instance_folder_path),
                         )
-                        logger.debug(f"Added file to archive: {file_path}")
+                        logger.debug(f"已将文件添加到存档: {file_path}")
                 archive.writestr("instance.json", self.to_bytes())
-                logger.debug(f"Added instance data to archive: {self.instance}")
+                logger.debug(f"已将实例数据添加到存档: {self.instance}")
         except Exception as e:
-            logger.error(f"An error occurred while compressing instance folder: {e}")
+            logger.error(f"压缩实例文件夹时出错: {e}")
 
     def validate_paths(self) -> list[str]:
         """Verify the paths of the instance

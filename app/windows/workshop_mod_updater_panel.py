@@ -28,16 +28,16 @@ class ModUpdaterPrompt(QWidget):
 
     def __init__(self, internal_mod_metadata: Dict[str, Any]):
         super().__init__()
-        logger.debug("Initializing ModUpdaterPrompt")
+        logger.debug("正在初始化模组更新提示")
         self.updates_found = None
 
         self.installEventFilter(self)
 
         self.internal_mod_metadata = internal_mod_metadata
-        self.setObjectName("missingModsPanel")
+        self.setObjectName("缺少模组面板")
         # MOD LABEL
         self.updates_available_label = QLabel(
-            "There updates available for Workshop mods!"
+            "有可用于创意工坊模组的更新！"
         )
         self.updates_available_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -53,7 +53,7 @@ class ModUpdaterPrompt(QWidget):
 
         # DETAILS WIDGETS
         self.details_label = QLabel(
-            "\nThe following table displays Workshop mods available for update from Steam."
+            "\n下表显示了可从 Steam 更新的创意工坊模组。"
         )
         self.details_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -63,11 +63,11 @@ class ModUpdaterPrompt(QWidget):
         self.editor_model.setHorizontalHeaderLabels(
             [
                 "✔",
-                "Name",
-                "PublishedFileID",
-                "Mod source",
-                "Mod last touched",
-                "Mod last updated",
+                "名称",
+                "已发布的文件 ID",
+                "模组资源",
+                "模组最后修改时间",
+                "模组最后更新时间",
                 # "Open page",
             ]
         )
@@ -100,23 +100,23 @@ class ModUpdaterPrompt(QWidget):
         self.editor_table_view.horizontalHeader().setSectionResizeMode(
             5, QHeaderView.ResizeMode.ResizeToContents
         )
-        self.editor_deselect_all_button = QPushButton("Deselect all")
+        self.editor_deselect_all_button = QPushButton("取消全选")
         self.editor_deselect_all_button.clicked.connect(
             partial(self._deselect_select_all_rows, False)
         )
-        self.editor_select_all_button = QPushButton("Select all")
+        self.editor_select_all_button = QPushButton("全选")
         self.editor_select_all_button.clicked.connect(
             partial(self._deselect_select_all_rows, True)
         )
-        self.editor_cancel_button = QPushButton("Do nothing and exit")
+        self.editor_cancel_button = QPushButton("不执行任何操作并退出")
         self.editor_cancel_button.clicked.connect(self.close)
-        self.editor_update_mods_button = QPushButton("Update mods")
+        self.editor_update_mods_button = QPushButton("更新模组")
         self.editor_update_mods_button.clicked.connect(
             partial(
                 self._update_mods_from_table,
             )
         )
-        self.editor_update_all_button = QPushButton("Update all")
+        self.editor_update_all_button = QPushButton("全部更新")
         self.editor_update_all_button.clicked.connect(partial(self._update_all))
         self.editor_actions_layout.addWidget(self.editor_deselect_all_button)
         self.editor_actions_layout.addWidget(self.editor_select_all_button)
@@ -142,7 +142,7 @@ class ModUpdaterPrompt(QWidget):
         self.layout.addLayout(self.lower_layout)
 
         # Put it all together
-        self.setWindowTitle("RimSort - Updates found for Workshop mods")
+        self.setWindowTitle("RimSort - 发现创意工坊模组的更新")
         self.setLayout(self.layout)
         self.setMinimumSize(QSize(900, 600))
 

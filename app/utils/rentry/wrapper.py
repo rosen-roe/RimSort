@@ -54,7 +54,7 @@ class RentryUpload:
         finally:
             if self.upload_success:
                 logger.debug(
-                    f"RentryUpload successfully uploaded data! Url: {self.url}, Edit code: {response['edit_code']}"
+                    f"RentryUpload 成功上传数据! Url: {self.url}, Edit code: {response['edit_code']}"
                 )
 
     def handle_upload_failure(self, response):
@@ -67,10 +67,10 @@ class RentryUpload:
         for error in errors:
             error and logger.warning(error)
         show_fatal_error(
-            title="Rentry Upload Error",
-            text=f"Rentry.co upload failed! Error: {error_content}",
+            title="Rentry 上传错误",
+            text=f"Rentry.co 上传失败! 错误: {error_content}",
         )
-        logger.error("RentryUpload failed!")
+        logger.error("RentryUpload 失败!")
 
     def new(self, text):
         """
@@ -111,13 +111,13 @@ class RentryImport:
     def input_dialog(self):
         # Initialize the UI for entering Rentry.co links
         link_input = show_dialogue_input(
-            title="Enter Rentry.co link",
-            label="Enter the Rentry.co link:",
+            title="输入 Rentry.co 链接",
+            label="输入 Rentry.co 链接:",
         )
 
         self.link_input = link_input
         self.import_rentry_link()
-        logger.info("Rentry link Input UI initialized successfully!")
+        logger.info("Rentry 链接输入 UI 初始化成功!")
 
     def is_valid_rentry_link(self, link):
         """
@@ -132,11 +132,11 @@ class RentryImport:
         rentry_link = self.link_input[0]
 
         if not self.is_valid_rentry_link(rentry_link):
-            logger.warning("Invalid Rentry link. Please enter a valid Rentry link.")
+            logger.warning("无效的 Rentry 链接。请输入有效的 Rentry 链接。")
             # Show warning message box
             show_warning(
-                title="Invalid Link",
-                text="Invalid Rentry link. Please enter a valid Rentry link.",
+                title="无效链接",
+                text="无效的 Rentry 链接。请输入有效的 Rentry 链接。",
             )
             return
 
@@ -160,14 +160,14 @@ class RentryImport:
                     for match in matches
                     if match[0] or match[1]
                 ]
-                logger.info("Parsed package_ids successfully.")
+                logger.info("解析 package_ids 成功。")
         except Exception as e:
             logger.error(
-                f"An error occurred while fetching rentry.co content: {str(e)}"
+                f"提取 rentry.co 内容时出错: {str(e)}"
             )
             show_fatal_error(
-                title="Error",
-                text=f"An error occurred: {str(e)}",
+                title="错误",
+                text=f"发生错误: {str(e)}",
             )
 
 
