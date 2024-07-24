@@ -2011,7 +2011,7 @@ class ModsPanel(QWidget):
         self.active_mods_search_filter.setObjectName("MainUI")
         self.active_mods_search_filter.setMaximumWidth(125)
         self.active_mods_search_filter.addItems(
-            ["名称", "模组ID", "作者", "已发布文件ID"]
+            ["Name", "PackageId", "Author(s)", "PublishedFileId"]
         )
         # Active mods search layouts
         self.active_mods_search_layout.addWidget(
@@ -2261,13 +2261,13 @@ class ModsPanel(QWidget):
         # Evaluate the search filter state for the list
         search_filter = None
         if _filter.currentText() == "Name":
-            search_filter = "名称"
+            search_filter = "name"
         elif _filter.currentText() == "PackageId":
-            search_filter = "模组ID"
+            search_filter = "packageid"
         elif _filter.currentText() == "Author(s)":
-            search_filter = "作者"
+            search_filter = "authors"
         elif _filter.currentText() == "PublishedFileId":
-            search_filter = "已发布文件ID"
+            search_filter = "publishedfileid"
         # Filter the list using any search and filter state
         for uuid in uuids:
             item = (
