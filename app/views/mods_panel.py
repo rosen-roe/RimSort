@@ -230,10 +230,10 @@ class ModListItemInner(QWidget):
                 ):
                     self.mod_source_icon.setObjectName("steamcmd")
                 else:
-                    self.mod_source_icon.setObjectName("本地")
+                    self.mod_source_icon.setObjectName("local")
                     self.mod_source_icon.setToolTip("本地安装")
             elif data_source == "workshop":
-                self.mod_source_icon.setObjectName("创意工坊")
+                self.mod_source_icon.setObjectName("workshop")
                 self.mod_source_icon.setToolTip("通过Steam订阅")
         # Set label color if mod is invalid
         if self.filtered:
@@ -2042,11 +2042,11 @@ class ModsPanel(QWidget):
         self.warnings_icon = QLabel()
         self.warnings_icon.setPixmap(ModListIcons.warning_icon().pixmap(QSize(20, 20)))
         self.warnings_text = QLabel("0 警告(s)")
-        self.warnings_text.setObjectName("摘要值")
+        self.warnings_text.setObjectName("summaryValue")
         self.errors_icon = QLabel()
         self.errors_icon.setPixmap(ModListIcons.error_icon().pixmap(QSize(20, 20)))
         self.errors_text = QLabel("0 错误(s)")
-        self.errors_text.setObjectName("摘要值")
+        self.errors_text.setObjectName("summaryValue")
         self.warnings_layout = QHBoxLayout()
         self.warnings_layout.addWidget(self.warnings_icon, 1)
         self.warnings_layout.addWidget(self.warnings_text, 99)
@@ -2275,15 +2275,16 @@ class ModsPanel(QWidget):
             source_filter = self.inactive_mods_data_source_filter
             uuids = self.inactive_mods_list.uuids
         # Evaluate the search filter state for the list
+        ["名称", "模组ID", "作者", "已发布文件ID"]
         search_filter = None
-        if _filter.currentText() == "Name":
-            search_filter = "名称"
-        elif _filter.currentText() == "PackageId":
-            search_filter = "模组ID"
-        elif _filter.currentText() == "Author(s)":
-            search_filter = "作者"
-        elif _filter.currentText() == "PublishedFileId":
-            search_filter = "已发布文件ID"
+        if _filter.currentText() == "名称":
+            search_filter = "name"
+        elif _filter.currentText() == "模组ID":
+            search_filter = "packageid"
+        elif _filter.currentText() == "作者":
+            search_filter = "authors"
+        elif _filter.currentText() == "已发布文件ID":
+            search_filter = "publishedfileid"
         # Filter the list using any search and filter state
         for uuid in uuids:
             item = (

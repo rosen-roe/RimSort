@@ -13,7 +13,7 @@ class ToddsInterface:
     Create ToddsInterface object to provide an interface for todds functionality
     """
 
-    def __init__(self, preset="优化", dry_run=False, overwrite=False) -> None:
+    def __init__(self, preset="optimized", dry_run=False, overwrite=False) -> None:
         logger.info("Todds接口启动...")
         if overwrite:
             overwrite_flag = "-o"

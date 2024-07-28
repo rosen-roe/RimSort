@@ -148,11 +148,11 @@ def launch_game_process(game_install_path: Path, args: list[str]) -> None:
             # Windows
             executable_path = str((game_install_path / "RimWorldWin64.exe"))
         else:
-            logger.error("Unable to launch the game on an unknown system")
-        logger.info(f"Path to game executable generated: {executable_path}")
+            logger.error("无法在未知系统上启动游戏")
+        logger.info(f"生成的游戏可执行文件的路径: {executable_path}")
         if os.path.exists(executable_path):
             logger.info(
-                "Launching the game with subprocess.Popen(): `"
+                "启动游戏 subprocess.Popen(): `"
                 + executable_path
                 + "` with args: `"
                 + str(args)
@@ -182,18 +182,18 @@ def launch_game_process(game_install_path: Path, args: list[str]) -> None:
                         shell=True,
                     )
             logger.info(
-                f"Launched independent RimWorld game process with PID {p.pid} using args {popen_args}"
+                f"使用参数 {popen_args} 启动了独立的 RimWorld 游戏进程，进程 ID 为 {p.pid}"
             )
         else:
-            logger.debug("The game executable path does not exist")
+            logger.debug("游戏可执行文件路径不存在")
             show_warning(
-                title="File not found",
-                text="Unable to launch game process",
+                title="找不到文件",
+                text="无法启动游戏进程",
                 information=(
-                    "RimSort could not start RimWorld as the game executable does "
-                    f"not exist at the specified path: {executable_path}. Please check "
-                    "that this directory is correct and the RimWorld game executable "
-                    "exists in it."
+                    "RimSort 无法启动 RimWorld ，因为指定路径上"
+                    f"不存在游戏可执行文件: {executable_path}。请检查 "
+                    "此目录是正确的，并且 RimWorld 游戏可执行"
+                    "并且存在于其中。"
                 ),
             )
     else:
@@ -212,7 +212,7 @@ def open_url_browser(url: str) -> None:
     """
     Open a url in a user's default web browser
     """
-    logger.info(f"USER ACTION: Opening url {url}")
+    logger.info(f"USER ACTION: 打开 url {url}")
     webbrowser.open(url)
 
 
@@ -222,7 +222,7 @@ def platform_specific_open(path: str) -> None:
 
     :param path: path to open
     """
-    logger.info(f"USER ACTION: opening {path}")
+    logger.info(f"USER ACTION: 打开 {path}")
     p = Path(path)
     system_name = platform.system()
     if system_name == "Darwin":
@@ -238,7 +238,7 @@ def platform_specific_open(path: str) -> None:
         logger.info(f"Opening {path} with xdg-open on Linux")
         subprocess.Popen(["xdg-open", path])
     else:
-        logger.error("Attempting to open directory on an unknown system")
+        logger.error("尝试在未知系统上打开目录")
 
 
 def sanitize_filename(filename: str) -> str:
@@ -276,15 +276,15 @@ def upload_data_to_0x0_st(path: str) -> tuple[bool, str]:
             url="http://0x0.st/", files={"file": (path, open(path, "rb"))}
         )
     except requests.exceptions.ConnectionError as e:
-        logger.error(f"Connection Error. Failed to upload data to http://0x0.st: {e}")
+        logger.error(f"连接错误。无法将数据上传到 http://0x0.st: {e}")
         return False, str(e)
 
     if request.status_code == 200:
         url = request.text.strip()
-        logger.info(f"Uploaded! Uploaded data can be found at: {url}")
+        logger.info(f"上传成功！上传的数据可以在以下位置找到: {url}")
         return True, url
     else:
         logger.warning(
-            f"Failed to upload data to http://0x0.st. Status code: {request.status_code}"
+            f"无法将数据上传到 http://0x0.st. 状态码: {request.status_code}"
         )
-        return False, f"Status code: {request.status_code}"
+        return False, f"状态码: {request.status_code}"
