@@ -13,7 +13,7 @@ class ToddsInterface:
     Create ToddsInterface object to provide an interface for todds functionality
     """
 
-    def __init__(self, preset="优化", dry_run=False, overwrite=False) -> None:
+    def __init__(self, preset="optimized", dry_run=False, overwrite=False) -> None:
         logger.info("Todds接口启动...")
         if overwrite:
             overwrite_flag = "-o"
@@ -22,11 +22,11 @@ class ToddsInterface:
         self.cwd = os.getcwd()
         self.system = platform.system()
         # Check if the preset is one of the old presets and change it to "optimized" if necessary
-        if preset in ["低", "中", "高"]:
-            preset = "优化"
+        if preset in ["low", "medium", "high"]:
+            preset = "optimized"
         self.preset = preset
         self.todds_presets = {
-            "清理": [
+            "clean": [
                 "-cl",
                 "-o",
                 "-ss",
@@ -34,7 +34,7 @@ class ToddsInterface:
                 "-p",
                 "-t",
             ],
-            "优化": [
+            "optimized": [
                 "-f",
                 "BC1",
                 "-af",
