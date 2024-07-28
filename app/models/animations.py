@@ -135,7 +135,6 @@ class WorkThread(QThread):
         try:
             self.data = self.target()
         except Exception as e:
-            error_message = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
-            logger.error(error_message)
-        logger.debug("工作线程已完成，返回到主线程")
+            logger.error(f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}")
+        logger.debug("WorkThread completed, returning to main thread")
         self.data_ready.emit(self.data)

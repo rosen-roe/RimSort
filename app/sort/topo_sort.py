@@ -4,6 +4,7 @@ from loguru import logger
 from toposort import CircularDependencyError, toposort
 
 from app.utils.metadata import MetadataManager
+from app.views.dialogue import show_warning
 
 
 def do_topo_sort(

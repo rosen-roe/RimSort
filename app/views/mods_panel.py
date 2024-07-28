@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 from enum import Enum
 from errno import ENOTEMPTY
 from functools import partial
@@ -19,6 +20,7 @@ from PySide6.QtGui import (
     QIcon,
     QKeyEvent,
     QKeySequence,
+    QMouseEvent,
     QResizeEvent,
 )
 from PySide6.QtWidgets import (
@@ -37,11 +39,6 @@ from PySide6.QtWidgets import (
 )
 
 from app.controllers.settings_controller import SettingsController
-from app.models.dialogue import (
-    show_dialogue_conditional,
-    show_dialogue_input,
-    show_warning,
-)
 from app.utils.app_info import AppInfo
 from app.utils.constants import (
     KNOWN_MOD_REPLACEMENTS,
@@ -52,19 +49,24 @@ from app.utils.generic import (
     copy_to_clipboard_safely,
     delete_files_except_extension,
     delete_files_only_extension,
+    flatten_to_list,
     handle_remove_read_only,
     open_url_browser,
     platform_specific_open,
     sanitize_filename,
-    set_to_list,
 )
 from app.utils.metadata import MetadataManager
+from app.views.dialogue import (
+    show_dialogue_conditional,
+    show_dialogue_input,
+    show_warning,
+)
 
 
 class ClickableQLabel(QLabel):
     clicked = Signal()
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event: QMouseEvent) -> None:
         self.clicked.emit()
         super().mousePressEvent(event)
 
@@ -569,8 +571,8 @@ class ModListWidget(QListWidget):
 
         # This set is used to keep track of mods that have been loaded
         # into widgets. Used for an optimization strategy for `handle_rows_inserted`
-        self.uuids = list()
-        self.ignore_warning_list = []
+        self.uuids: list[str] = []
+        self.ignore_warning_list: list[str] = []
         logger.debug("模组列表小部件初始化完成")
 
     def dropEvent(self, event: QDropEvent) -> None:
@@ -719,7 +721,13 @@ class ModListWidget(QListWidget):
                         mod_name = mod_metadata.get("name")
                         mod_folder_name = mod_metadata["folder"]
                         mod_folder_path = mod_metadata["path"]
-                        publishedfileid = mod_metadata.get("publishedfileid")
+                        publishedfileid = mod_metadata.get("publishedfileid", "")
+                        if not isinstance(publishedfileid, str):
+                            logger.error(
+                                f"Invalid publishedfileid type: {publishedfileid} for {mod_name}"
+                            )
+                            publishedfileid = ""
+
                         if not mod_metadata.get("steamcmd") and (
                             self.metadata_manager.external_steam_metadata
                             and publishedfileid
@@ -966,7 +974,7 @@ class ModListWidget(QListWidget):
                 or re_git_action
             ):
                 misc_options_menu = QMenu(title="其他选项")
-                if copy_packageId_to_clipboard_action or copy_url_to_clipboard_action:
+                if copy_packageId_to_clipboard_action:
                     clipboard_options_menu = QMenu(title="剪贴板选项")
                     clipboard_options_menu.addAction(copy_packageId_to_clipboard_action)
                     if copy_url_to_clipboard_action:
@@ -1051,10 +1059,10 @@ class ModListWidget(QListWidget):
                                     logger.debug(
                                         f'成功将本地模组转换为SteamCMD模组，通过重命名从 {folder_name} 到 {publishedfileid}'
                                     )
-                                except:
+                                except Exception as e:
                                     stacktrace = format_exc()
                                     logger.error(
-                                        f"转换模组失败: {original_mod_path}"
+                                        f"转换模组失败: {original_mod_path} - {e}"
                                     )
                                     logger.error(stacktrace)
                             else:
@@ -1088,10 +1096,10 @@ class ModListWidget(QListWidget):
                                     logger.debug(
                                         f"成功将SteamCMD模组通过重命名从 {publishedfileid} 更改为 {mod_name}"
                                     )
-                                except:
+                                except Exception as e:
                                     stacktrace = format_exc()
                                     logger.error(
-                                        f"转换模组失败: {original_mod_path}"
+                                        f"转换模组失败: {original_mod_path} - {e}"
                                     )
                                     logger.error(stacktrace)
                             else:
@@ -1173,9 +1181,9 @@ class ModListWidget(QListWidget):
                                 logger.debug(
                                     f"已成功转换Steam模组，通过将 {publishedfileid_from_folder_name} 复制并重命名为 {mod_name} ，并将模组迁移到本地模组目录中。"
                                 )
-                            except:
+                            except Exception as e:
                                 stacktrace = format_exc()
-                                logger.error(f"转换模组失败: {path}")
+                                logger.error(f"转换模组失败: {path} - {e}")
                                 logger.error(stacktrace)
                     self.refresh_signal.emit()
                     return True
@@ -1229,6 +1237,21 @@ class ModListWidget(QListWidget):
                 elif (
                     action == add_to_steamdb_blacklist_action
                 ):  # ACTION: Blacklist workshop mod in SteamDB
+                    if (
+                        self.metadata_manager.external_steam_metadata is None
+                        or steamdb_add_blacklist is None
+                    ):
+                        logger.error(
+                            f"Unable to add mod to SteamDB blacklist: {steamdb_remove_blacklist}"
+                        )
+                        show_warning(
+                            "Warning",
+                            "Unable to add mod to SteamDB blacklist",
+                            "Metadata manager or steamdb_add_blacklist was None type",
+                            parent=self,
+                        )
+                        return False
+
                     args, ok = show_dialogue_input(
                         title="添加评论",
                         label="输入一个评论，说明您希望将此模组加入黑名单的原因: "
@@ -1247,6 +1270,21 @@ class ModListWidget(QListWidget):
                 elif (
                     action == remove_from_steamdb_blacklist_action
                 ):  # ACTION: Blacklist workshop mod in SteamDB
+                    if (
+                        self.metadata_manager.external_steam_metadata is None
+                        or steamdb_remove_blacklist is None
+                    ):
+                        logger.error(
+                            f"Unable to remove mod from SteamDB blacklist: {steamdb_remove_blacklist}"
+                        )
+                        show_warning(
+                            "Warning",
+                            "Unable to remove mod from SteamDB blacklist",
+                            "Metadata manager or steamdb_remove_blacklist was None type",
+                            parent=self,
+                        )
+                        return False
+
                     answer = show_dialogue_conditional(
                         title="是否确定？",
                         text="这将移除所选的模组， "
@@ -1291,7 +1329,7 @@ class ModListWidget(QListWidget):
                                         )
                                         pass
                                     except OSError as e:
-                                        if os.name == 'nt':
+                                        if sys.platform == "win32":
                                             error_code = e.winerror
                                         else:
                                             error_code = e.errno
@@ -1541,8 +1579,12 @@ class ModListWidget(QListWidget):
         This slot is called when an item's data changes
         """
         widget = self.itemWidget(item)
-        if widget:
+        if widget and isinstance(widget, ModListItemInner):
             widget.repolish(item)
+        else:
+            logger.debug(
+                "Attempted to repolish item with no widget or incorrect widget type"
+            )
 
     def handle_other_list_row_added(self, uuid: str) -> None:
         if uuid in self.uuids:
@@ -1628,7 +1670,7 @@ class ModListWidget(QListWidget):
             )
             self.list_update_signal.emit(str(self.count()))
 
-    def get_item_widget_at_index(self, idx: int) -> Optional[ModListItemInner]:
+    def get_item_widget_at_index(self, idx: int) -> QWidget | None:
         item = self.item(idx)
         if item:
             return self.itemWidget(item)
@@ -1657,17 +1699,17 @@ class ModListWidget(QListWidget):
             data = current.data(Qt.ItemDataRole.UserRole)
             self.mod_info_signal.emit(data["uuid"])
             mod_info = self.metadata_manager.internal_local_metadata[data["uuid"]]
-            mod_info = set_to_list(mod_info)
+            mod_info = flatten_to_list(mod_info)
             mod_info_pretty = json.dumps(mod_info, indent=4)
             logger.debug(
                 f"USER ACTION: 模组已被点击: [{data['uuid']}] {mod_info_pretty}"
             )
 
-    def mod_double_clicked(self, item: QListWidgetItem):
+    def mod_double_clicked(self, item: QListWidgetItem) -> None:
         """
         Method to handle double clicking on a row.
         """
-        widget = ModListItemInner = self.itemWidget(item)
+        # widget = ModListItemInner = self.itemWidget(item)
         self.key_press_signal.emit("DoubleClick")
 
     def rebuild_item_widget_from_uuid(self, uuid: str) -> None:
@@ -1685,7 +1727,7 @@ class ModListWidget(QListWidget):
         if self.currentItem() == item:
             self.mod_info_signal.emit(uuid)
 
-    def recalculate_internal_errors_warnings(self) -> None:
+    def recalculate_internal_errors_warnings(self) -> tuple[str, str, int, int]:
         """
         Whenever the respective mod list has items added to it, or has
         items removed from it, or has items rearranged around within it,
@@ -1694,14 +1736,13 @@ class ModListWidget(QListWidget):
         logger.info(f"Recalculating {self.list_type} list errors / warnings")
 
         internal_local_metadata = self.metadata_manager.internal_local_metadata
-        game_version = self.metadata_manager.game_version
 
         packageid_to_uuid = {
             internal_local_metadata[uuid]["packageid"]: uuid for uuid in self.uuids
         }
         package_ids_set = set(packageid_to_uuid.keys())
 
-        package_id_to_errors = {
+        package_id_to_errors: dict[str, dict[str, None | set[str] | bool]] = {
             uuid: {
                 "missing_dependencies": set() if self.list_type == "Active" else None,
                 "conflicting_incompatibilities": (
@@ -1763,6 +1804,7 @@ class ModListWidget(QListWidget):
                         and current_mod_index
                         <= self.uuids.index(packageid_to_uuid[load_this_before[0]])
                     ):
+                        assert isinstance(mod_errors["load_before_violations"], set)
                         mod_errors["load_before_violations"].add(load_this_before[0])
 
                 # Check loadTheseAfter
@@ -1773,6 +1815,7 @@ class ModListWidget(QListWidget):
                         and current_mod_index
                         >= self.uuids.index(packageid_to_uuid[load_this_after[0]])
                     ):
+                        assert isinstance(mod_errors["load_after_violations"], set)
                         mod_errors["load_after_violations"].add(load_this_after[0])
             # Calculate any needed string for errors / warnings
             tool_tip_text = ""
@@ -1784,9 +1827,11 @@ class ModListWidget(QListWidget):
             ]:
                 if mod_errors[error_type]:
                     tool_tip_text += tooltip_header
-                    for key in mod_errors[error_type]:
+                    errors = mod_errors[error_type]
+                    assert isinstance(errors, set)
+                    for key in errors:
                         name = internal_local_metadata.get(
-                            packageid_to_uuid.get(key), {}
+                            packageid_to_uuid.get(key, ""), {}
                         ).get(
                             "name",
                             self.metadata_manager.steamdb_packageid_to_name.get(
@@ -1871,9 +1916,10 @@ class ModListWidget(QListWidget):
         Returns:
             None
         """
+        # TODO: Fix this or just get rid of it
         sorted_uuids = uuids
-        if key != ModsPanelSortKey.NOKEY:
-            sorted_uuids = sorted(uuids, key=key)
+        # if key != ModsPanelSortKey.NOKEY:
+        #    sorted_uuids = sorted(uuids, key=key)
         self.recreate_mod_list(list_type, sorted_uuids)
 
     def recreate_mod_list(self, list_type: str, uuids: List[str]) -> None:
@@ -2014,6 +2060,8 @@ class ModsPanel(QWidget):
         self.active_mods_search_clear_button = self.active_mods_search.findChild(
             QToolButton
         )
+        if not isinstance(self.active_mods_search_clear_button, QToolButton):
+            raise TypeError("Could not find QToolButton in QLineEdit")
         self.active_mods_search_clear_button.setEnabled(True)
         self.active_mods_search_clear_button.clicked.connect(
             self.on_active_mods_search_clear
@@ -2105,6 +2153,8 @@ class ModsPanel(QWidget):
         self.inactive_mods_search_clear_button = self.inactive_mods_search.findChild(
             QToolButton
         )
+        if not isinstance(self.inactive_mods_search_clear_button, QToolButton):
+            raise TypeError("Could not find QToolButton in QLineEdit")
         self.inactive_mods_search_clear_button.setEnabled(True)
         self.inactive_mods_search_clear_button.clicked.connect(
             self.on_inactive_mods_search_clear
@@ -2274,6 +2324,8 @@ class ModsPanel(QWidget):
             filter_state = self.inactive_mods_search_filter_state
             source_filter = self.inactive_mods_data_source_filter
             uuids = self.inactive_mods_list.uuids
+        else:
+            raise NotImplementedError(f"Unknown list type: {list_type}")
         # Evaluate the search filter state for the list
         ["名称", "模组ID", "作者", "已发布文件ID"]
         search_filter = None
@@ -2330,7 +2382,7 @@ class ModsPanel(QWidget):
 
     def signal_search_mode_filter(self, list_type: str) -> None:
         filter_state = False
-        icon = self.mode_nofilter_icon
+
         if list_type == "Active":
             filter_state = self.active_mods_search_filter_state
             self.active_mods_search_filter_state = not filter_state
@@ -2380,9 +2432,6 @@ class ModsPanel(QWidget):
             if list_type == "Active"
             else self.inactive_mods_label
         )
-        mods_list = (
-            self.active_mods_list if list_type == "Active" else self.inactive_mods_list
-        )
         search = (
             self.active_mods_search
             if list_type == "Active"
@@ -2403,7 +2452,7 @@ class ModsPanel(QWidget):
             )
             item_data = item.data(Qt.ItemDataRole.UserRole)
             item_filtered = item_data["filtered"]
-            widget = mods_list.itemWidget(item)
+
             if item.isHidden() or item_filtered:
                 num_filtered += 1
             else:
