@@ -223,7 +223,7 @@ class MainContent(QObject):
 
             # FRAME REQUIRED - to allow for styling
             self.main_layout_frame = QFrame()
-            self.main_layout_frame.setObjectName("主面板")
+            self.main_layout_frame.setObjectName("MainPanel")
             self.main_layout_frame.setLayout(self.main_layout)
 
             # INSTANTIATE WIDGETS
