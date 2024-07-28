@@ -41,7 +41,7 @@ class MissingModsPrompt(QWidget):
         self.DEPENDENCY_TAG = "_-_DEPENDENCY_-_"
         self.packageids = packageids
         self.steam_workshop_metadata = steam_workshop_metadata
-        self.setObjectName("缺少模组面板")
+        self.setObjectName("missingModsPanel")
         # MOD LABEL
         self.missing_mods_label = QLabel(
             "启用模组列表中缺少模组！"

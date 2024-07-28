@@ -19,7 +19,7 @@ class Status:
 
         # This view is contained within a QFrame to allow for styling
         self.frame = QFrame()
-        self.frame.setObjectName("状态面板")
+        self.frame.setObjectName("StatusPanel")
 
         # Create the main layout for the view
         self.layout = QHBoxLayout()
@@ -30,7 +30,7 @@ class Status:
 
         # Create the single fading text widget
         self.status_text = AnimationLabel()
-        self.status_text.setObjectName("状态标签")
+        self.status_text.setObjectName("StatusLabel")
 
         # Add the widget to the base layout
         self.layout.addWidget(self.status_text)
