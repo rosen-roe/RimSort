@@ -72,13 +72,13 @@ class RuleEditor(QWidget):
 
     def __init__(self, initial_mode: str, compact=None, edit_packageid=None):
         super().__init__()
-        logger.debug("Initializing RuleEditor")
+        logger.debug("初始化规则编辑器")
 
         # Cache MetadataManager instance
         self.metadata_manager = MetadataManager.instance()
 
         # STYLESHEET
-        self.setObjectName("RuleEditor")
+        self.setObjectName("规则编辑器")
 
         # LAUNCH OPTIONS
         self.block_comment_prompt = (
@@ -114,7 +114,7 @@ class RuleEditor(QWidget):
                     )
 
         # MOD LABEL
-        self.mod_label = QLabel("No mod currently being edited")
+        self.mod_label = QLabel("当前没有正在编辑的模组")
         self.mod_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # CONTAINER LAYOUTS
@@ -136,17 +136,17 @@ class RuleEditor(QWidget):
 
         # DETAILS WIDGETS
         # local metadata
-        self.local_metadata_loadAfter_label = QLabel("About.xml (loadAfter)")
-        self.local_metadata_loadBefore_label = QLabel("About.xml (loadBefore)")
+        self.local_metadata_loadAfter_label = QLabel("About.xml (加载于后)")
+        self.local_metadata_loadBefore_label = QLabel("About.xml (加载于前)")
         self.local_metadata_loadAfter_list = QListWidget()
         self.local_metadata_loadBefore_list = QListWidget()
 
         # community rules
         self.external_community_rules_loadAfter_label = QLabel(
-            "Community Rules (loadAfter)"
+            "社区规则 (加载于后)"
         )
         self.external_community_rules_loadBefore_label = QLabel(
-            "Community Rules (loadBefore)"
+            "社区规则 (加载于前)"
         )
         self.external_community_rules_loadAfter_list = QListWidget()
         self.external_community_rules_loadAfter_list.setContextMenuPolicy(
@@ -183,12 +183,12 @@ class RuleEditor(QWidget):
             self.external_community_rules_loadBefore_list
         )
         self.external_community_rules_loadBottom_checkbox = QCheckBox(
-            "Force load at bottom of list"
+            "在列表底部强制加载"
         )
-        self.external_community_rules_loadBottom_checkbox.setObjectName("summaryValue")
+        self.external_community_rules_loadBottom_checkbox.setObjectName("摘要")
         # user rules
-        self.external_user_rules_loadAfter_label = QLabel("User Rules (loadAfter)")
-        self.external_user_rules_loadBefore_label = QLabel("User Rules (loadBefore)")
+        self.external_user_rules_loadAfter_label = QLabel("用户规则 (加载于后)")
+        self.external_user_rules_loadBefore_label = QLabel("用户规则 (加载于前)")
         self.external_user_rules_loadAfter_list = QListWidget()
         self.external_user_rules_loadAfter_list.setContextMenuPolicy(
             Qt.ContextMenuPolicy.CustomContextMenu
@@ -224,14 +224,14 @@ class RuleEditor(QWidget):
             self.external_user_rules_loadBefore_list
         )
         self.external_user_rules_loadBottom_checkbox = QCheckBox(
-            "Force load at bottom of list"
+            "在列表底部强制加载"
         )
-        self.external_user_rules_loadBottom_checkbox.setObjectName("summaryValue")
+        self.external_user_rules_loadBottom_checkbox.setObjectName("摘要")
         # EDITOR WIDGETS
         # Create the model and set column headers
         self.editor_model = QStandardItemModel(0, 5)
         self.editor_model.setHorizontalHeaderLabels(
-            ["Name", "PackageId", "Rule source", "Rule type", "Comment"]
+            ["名称", "模组ID", "规则源", "规则类型", "注释"]
         )
         # Create the table view and set the model
         self.editor_delegate = EditableDelegate()
@@ -275,7 +275,7 @@ class RuleEditor(QWidget):
         )
         self.editor_save_community_rules_button = QToolButton()
         self.editor_save_community_rules_button.setToolTip(
-            "Save rules to communityRules.json"
+            "将规则保存到 communityRules.json"
         )
         self.editor_save_community_rules_button.setIcon(
             self.editor_save_community_rules_icon
@@ -288,7 +288,7 @@ class RuleEditor(QWidget):
             str(AppInfo().theme_data_folder / "default-icons" / "save_user_rules.png")
         )
         self.editor_save_user_rules_button = QToolButton()
-        self.editor_save_user_rules_button.setToolTip("Save rules to userRules.json")
+        self.editor_save_user_rules_button.setToolTip("将规则保存到 userRules.json")
         self.editor_save_user_rules_button.setIcon(self.editor_save_user_rules_icon)
         self.editor_save_user_rules_button.clicked.connect(
             partial(self._save_editor_rules, rules_source="User Rules")
@@ -298,7 +298,7 @@ class RuleEditor(QWidget):
         self.mods_search = QLineEdit()
         self.mods_search.setClearButtonEnabled(True)
         self.mods_search.textChanged.connect(self.signal_mods_search)
-        self.mods_search.setPlaceholderText("Search mods by name")
+        self.mods_search.setPlaceholderText("按名称搜索模组")
         self.mods_search_clear_button = self.mods_search.findChild(QToolButton)
         self.mods_search_clear_button.setEnabled(True)
         self.mods_search_clear_button.clicked.connect(self.clear_mods_search)
@@ -430,13 +430,13 @@ class RuleEditor(QWidget):
             )
         # Connect these after metadata population
         self.external_community_rules_loadBottom_checkbox.stateChanged.connect(
-            partial(self._toggle_loadBottom_rule, "Community Rules")
+            partial(self._toggle_loadBottom_rule, "社区规则")
         )
         self.external_user_rules_loadBottom_checkbox.stateChanged.connect(
-            partial(self._toggle_loadBottom_rule, "User Rules")
+            partial(self._toggle_loadBottom_rule, "用户规则")
         )
         # Setup the window
-        self.setWindowTitle("RimSort - Rule Editor")
+        self.setWindowTitle("RimSort - 规则编辑器")
         self.setLayout(self.layout)
         self.setMinimumSize(QSize(800, 600))
 
@@ -483,14 +483,14 @@ class RuleEditor(QWidget):
                     )  # Get the item in column 4 (index 3)
                     # Search table for rows that match.
                     if (
-                        (packageid_value and rule_data == packageid_value.text())
-                        and (rule_source_value and mode[0] == rule_source_value.text())
-                        and (rule_type_value and mode[1] == rule_type_value.text())
+                        (packageid_value and rule_data in packageid_value.text())
+                        and (rule_source_value and mode[0] in rule_source_value.text())
+                        and (rule_type_value and mode[1] in rule_type_value.text())
                     ):
                         show_warning(
-                            title="Duplicate rule",
-                            text="Tried to add duplicate rule.",
-                            information="Skipping creation of duplicate rule!",
+                            title="重复规则",
+                            text="尝试添加重复的规则。",
+                            information="跳过创建重复规则！",
                         )
                         return
                 # If we don't find anything existing that matches...
@@ -499,9 +499,9 @@ class RuleEditor(QWidget):
                 destination_list.setItemWidget(copied_item, QLabel(item_label_text))
                 # Add a new row in the editor - prompt user to enter a comment for their rule addition
                 args, ok = show_dialogue_input(
-                    title="Enter comment",
-                    label="""Enter a comment to annotate why this rule exists.
-                      This is useful for your own records, as well as others.""",
+                    title="输入注释",
+                    label="""输入注释以说明此规则存在的原因。
+                      这对您自己的记录以及其他记录都很有用。""",
                 )
                 if ok:
                     comment = args
@@ -550,7 +550,7 @@ class RuleEditor(QWidget):
         if not self.edit_packageid:
             return
         logger.debug(
-            f"Adding {rule_source} {rule_type} rule to mod {self.edit_packageid} with comment: {comment}"
+            f"向模组 {self.edit_packageid} 添加 {rule_source} {rule_type} ，并附加注释: {comment}"
         )
         # Create the standard items for each column
         items = [
@@ -570,7 +570,7 @@ class RuleEditor(QWidget):
             self.editor_table_view.setRowHidden(row, hidden)
 
     def _clear_widget(self) -> None:
-        logger.debug("Clearing editor")
+        logger.debug("清空编辑器")
         self.clear_mods_search()
         self.mods_list.clear()
         self.local_metadata_loadAfter_list.clear()
@@ -609,7 +609,7 @@ class RuleEditor(QWidget):
                 item.setToolTip(title)
         # Set list item label
         label = QLabel(title)
-        label.setObjectName("ListItemLabel")
+        label.setObjectName("列表项标签")
         # Set the size hint of the item to be the size of the label
         item.setSizeHint(label.sizeHint())
         # add to our list
@@ -617,7 +617,7 @@ class RuleEditor(QWidget):
         _list.setItemWidget(item, label)
 
     def _open_mod_in_editor(self, context_item: QListWidgetItem) -> None:
-        logger.debug(f"Opening mod in editor: {self.edit_packageid}")
+        logger.debug(f"在编辑器中打开模组: {self.edit_packageid}")
         self.edit_packageid = context_item.data(Qt.ItemDataRole.UserRole)
         if self.edit_packageid:
             self.external_community_rules_loadBottom_checkbox.setCheckable(True)
@@ -626,8 +626,8 @@ class RuleEditor(QWidget):
         self._populate_from_metadata()
 
     def _populate_from_metadata(self) -> None:
-        logger.debug(f"Populating editor from metadata with mod: {self.edit_packageid}")
-        logger.debug("Parsing local metadata")
+        logger.debug(f"使用模组从元数据填充编辑器: {self.edit_packageid}")
+        logger.debug("解析本地元数据")
         if (
             self.metadata_manager.internal_local_metadata
             and len(self.metadata_manager.internal_local_metadata.keys()) > 0
@@ -723,8 +723,8 @@ class RuleEditor(QWidget):
                             # Set rule name to the packageid if it's empty
                             rule_name = rule_id
                             logger.warning(
-                                f"Rule name is missing for {rule_type} rule in mod {self.edit_packageid}."
-                                f" Using packageid {rule_id} as name."
+                                f"在模组 {self.edit_packageid} 中，{rule_type} 规则缺少规则名称。"
+                                f"使用模组ID {rule_id} 作为名称。"
                             )
 
                         self._create_list_item(
@@ -762,7 +762,7 @@ class RuleEditor(QWidget):
                             hidden=hidden,
                         )
 
-        logger.debug("Parsing Community Rules")
+        logger.debug("解析社区规则")
         # Community Rules rules
         _parse_rules(
             rules=self.community_rules,
@@ -770,10 +770,10 @@ class RuleEditor(QWidget):
             loadBefore_list=self.external_community_rules_loadBefore_list,
             loadBottom_checkbox=self.external_community_rules_loadBottom_checkbox,
             hidden=self.community_rules_hidden,
-            rule_source="Community Rules",
+            rule_source="社区规则",
         )
 
-        logger.debug("Parsing User Rules")
+        logger.debug("解析用户规则")
         # User Rules rules
         _parse_rules(
             rules=self.user_rules,
@@ -785,7 +785,7 @@ class RuleEditor(QWidget):
         )
 
     def _remove_rule(self, context_item: QListWidgetItem, _list: QListWidget) -> None:
-        logger.debug(f"Removing rule from mod: {self.edit_packageid}")
+        logger.debug(f"从模组中移除规则: {self.edit_packageid}")
         _list.takeItem(_list.row(context_item))
         rule_data = context_item.data(Qt.ItemDataRole.UserRole)
         # Determine action mode
@@ -829,7 +829,7 @@ class RuleEditor(QWidget):
             metadata[self.edit_packageid][mode[1]].pop(rule_data)
 
     def _save_editor_rules(self, rules_source: str) -> None:
-        logger.debug(f"Updating rules source: {rules_source}")
+        logger.debug(f"更新规则源: {rules_source}")
         # Overwrite rules source with any changes to our metadata
         if rules_source == "Community Rules":
             metadata = self.community_rules
@@ -855,38 +855,38 @@ class RuleEditor(QWidget):
         if visibility:
             if layout is self.internal_local_metadata_layout:
                 self.local_rules_hidden = True
-                self.local_metadata_button.setText("Show About.xml rules")
+                self.local_metadata_button.setText("显示 About.xml 规则")
                 self._toggle_editor_table_rows(
                     rule_type="About.xml", visibility=visibility
                 )
             elif layout is self.external_community_rules_layout:
                 self.community_rules_hidden = True
-                self.community_rules_button.setText("Edit Community Rules")
+                self.community_rules_button.setText("编辑社区规则")
                 self._toggle_editor_table_rows(
                     rule_type="Community Rules", visibility=visibility
                 )
             elif layout is self.external_user_rules_layout:
                 self.user_rules_hidden = False
-                self.user_rules_button.setText("Edit User Rules")
+                self.user_rules_button.setText("编辑用户规则")
                 self._toggle_editor_table_rows(
                     rule_type="User Rules", visibility=visibility
                 )
         else:
             if layout is self.internal_local_metadata_layout:
                 self.local_rules_hidden = False
-                self.local_metadata_button.setText("Hide About.xml rules")
+                self.local_metadata_button.setText("隐藏 About.xml 规则")
                 self._toggle_editor_table_rows(
                     rule_type="About.xml", visibility=visibility
                 )
             elif layout is self.external_community_rules_layout:
                 self.community_rules_hidden = False
-                self.community_rules_button.setText("Lock Community Rules")
+                self.community_rules_button.setText("锁定社区规则")
                 self._toggle_editor_table_rows(
                     rule_type="Community Rules", visibility=visibility
                 )
             elif layout is self.external_user_rules_layout:
                 self.user_rules_hidden = False
-                self.user_rules_button.setText("Lock User Rules")
+                self.user_rules_button.setText("锁定用户规则")
                 self._toggle_editor_table_rows(
                     rule_type="User Rules", visibility=visibility
                 )
@@ -901,7 +901,7 @@ class RuleEditor(QWidget):
 
     def _toggle_loadBottom_rule(self, rule_source: str, state) -> None:
         if self.edit_packageid:
-            logger.debug(f"Toggle loadBottom for {self.edit_packageid}: {state}")
+            logger.debug(f"切换模组 {self.edit_packageid} 的底部加载状态: {state}")
             # Select database for editing
             if rule_source == "Community Rules":
                 metadata = self.community_rules
@@ -912,9 +912,9 @@ class RuleEditor(QWidget):
                 if not self.block_comment_prompt:
                     # Add a new row in the editor - prompt user to enter a comment for their rule addition
                     args, ok = show_dialogue_input(
-                        title="Enter comment",
-                        label="Enter a comment to annotate why this rule exists."
-                        "This is useful for your own records, as well as others.",
+                        title="输入注释",
+                        label="请输入注释以说明此规则存在的原因。"
+                        "这对您自己的记录以及其他人来说都很有用。",
                         parent=self,
                     )
                     if ok:
@@ -975,9 +975,9 @@ class RuleEditor(QWidget):
             str: The comment entered by the user if dialogue is accepted, otherwise an empty string.
         """
         item, ok = show_dialogue_input(
-            title="Enter comment",
-            label="Enter a comment to annotate why this rule exists."
-            " This is useful for your own records, as well as others.",
+            title="输入注释",
+            label="请输入注释以说明此规则存在的原因。"
+            "这对您自己的记录以及其他人来说都很有用。",
             parent=self,
         )
         if ok:
@@ -988,7 +988,7 @@ class RuleEditor(QWidget):
         context_menu = QMenu(self)  # Mod item context menu event
         context_item = self.mods_list.itemAt(point)
         open_mod = context_menu.addAction(
-            "Open this mod in the editor"
+            "在编辑器中打开这个模组"
         )  # open mod in editor
         open_mod.triggered.connect(
             partial(self._open_mod_in_editor, context_item=context_item)
@@ -998,7 +998,7 @@ class RuleEditor(QWidget):
     def ruleItemContextMenuEvent(self, point: QPoint, _list: QListWidget) -> None:
         context_menu = QMenu(self)  # Rule item context menu event
         context_item = _list.itemAt(point)
-        remove_rule = context_menu.addAction("Remove this rule")  # remove this rule
+        remove_rule = context_menu.addAction("删除此规则")  # remove this rule
         remove_rule.triggered.connect(
             partial(
                 self._remove_rule,

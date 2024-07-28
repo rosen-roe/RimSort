@@ -67,8 +67,7 @@ class LoadingAnimation(QWidget):
 
     def __init__(self, gif_path: str, target: Callable[..., Any]):
         super().__init__()
-        logger.debug("Initializing LoadingAnimation")
-
+        logger.debug("初始化加载动画")
         # Store data
         self.animation_finished = False
         self.data: dict[Any, Any] = {}
@@ -82,7 +81,6 @@ class LoadingAnimation(QWidget):
 
         # Window properties
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-
         # Label and layout
         self._layout = QVBoxLayout(self)
         self.movie = QMovie(self.gif_path)
@@ -100,19 +98,19 @@ class LoadingAnimation(QWidget):
     def check_animation_stop(self, frameNumber: int) -> None:
         """Checks if the animation should stop."""
         if self.animation_finished and frameNumber == self.movie.frameCount() - 1:
-            logger.debug("Animation is finished")
+            logger.debug("动画完成")
             self.stop_animation()
 
     def handle_data(self, data: dict[Any, Any]) -> None:
         """Handle data received from thread."""
         if data:
-            logger.debug(f"Received {type(data)} from thread")
+            logger.debug(f"从线程接收 {type(data)} ")
             self.data = data
 
     def prepare_stop_animation(self) -> None:
         """Prepare to stop the animation."""
         # Set flag when thread finished
-        logger.debug("Flagging animation to complete")
+        logger.debug("标记要完成的动画")
         self.animation_finished = True
 
     def stop_animation(self) -> None:
@@ -139,5 +137,5 @@ class WorkThread(QThread):
         except Exception as e:
             error_message = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
             logger.error(error_message)
-        logger.debug("WorkThread completed, returning to main thread")
+        logger.debug("工作线程已完成，返回到主线程")
         self.data_ready.emit(self.data)

@@ -47,7 +47,7 @@ class SteamBrowser(QWidget):
         # This is used to fix issue described here on non-Windows platform:
         # https://doc.qt.io/qt-6/qtwebengine-platform-notes.html#sandboxing-support
         if platform.system() != "Windows":
-            logger.info("Setting QTWEBENGINE_DISABLE_SANDBOX for non-Windows platform")
+            logger.info("为非 Windows 平台设置 QTWEBENGINE_DISABLE_SANDBOX ")
             os.environ["QTWEBENGINE_DISABLE_SANDBOX"] = "1"
 
         # VARIABLES
@@ -74,7 +74,7 @@ class SteamBrowser(QWidget):
         self.downloader_layout = QVBoxLayout()
 
         # DOWNLOADER WIDGETS
-        self.downloader_label = QLabel("Mod Downloader")
+        self.downloader_label = QLabel("模组下载器")
         self.downloader_label.setObjectName("browserPaneldownloader_label")
         self.downloader_list = QListWidget()
         self.downloader_list.setFixedWidth(200)
@@ -85,16 +85,16 @@ class SteamBrowser(QWidget):
         self.downloader_list.customContextMenuRequested.connect(
             self._downloader_item_ContextMenuEvent
         )
-        self.clear_list_button = QPushButton("Clear List")
+        self.clear_list_button = QPushButton("清除列表")
         self.clear_list_button.setObjectName("browserPanelClearList")
         self.clear_list_button.clicked.connect(self._clear_downloader_list)
-        self.download_steamcmd_button = QPushButton("Download mod(s) (SteamCMD)")
+        self.download_steamcmd_button = QPushButton("下载模组 (SteamCMD)")
         self.download_steamcmd_button.clicked.connect(
             partial(
                 self.steamcmd_downloader_signal.emit, self.downloader_list_mods_tracking
             )
         )
-        self.download_steamworks_button = QPushButton("Download mod(s) (Steam app)")
+        self.download_steamworks_button = QPushButton("下载模组 (Steam app)")
         self.download_steamworks_button.clicked.connect(
             self._subscribe_to_mods_from_list
         )
@@ -128,7 +128,7 @@ class SteamBrowser(QWidget):
         self.location.returnPressed.connect(self.__browse_to_location)
 
         # Nav bar
-        self.add_to_list_button = QAction("Add to list")
+        self.add_to_list_button = QAction("添加到列表")
         self.add_to_list_button.triggered.connect(self._add_collection_or_mod_to_list)
         self.nav_bar = QToolBar()
         self.nav_bar.setObjectName("browserPanelnav_bar")
@@ -171,7 +171,7 @@ class SteamBrowser(QWidget):
 
     def __browse_to_location(self):
         url = QUrl(self.location.text())
-        logger.debug(f"Browsing to: {url.url()}")
+        logger.debug(f"浏览: {url.url()}")
         self.web_view.load(url)
 
     def _add_collection_or_mod_to_list(self):
@@ -181,7 +181,7 @@ class SteamBrowser(QWidget):
         elif self.url_prefix_workshop in self.current_url:
             publishedfileid = self.current_url.split(self.url_prefix_workshop, 1)[1]
         else:
-            logger.error(f"Unable to parse pfid from url: {self.current_url}")
+            logger.error(f"无法从 url 解析 pfid: {self.current_url}")
         # If there is extra data after the PFID, strip it
         if self.searchtext_string in publishedfileid:
             publishedfileid = publishedfileid.split(self.searchtext_string)[0]
@@ -198,12 +198,12 @@ class SteamBrowser(QWidget):
                     self._add_mod_to_list(publishedfileid=pfid, title=title)
             else:
                 logger.warning(
-                    "Empty list of mods returned, unable to add collection to list!"
+                    "返回的模组列表为空，无法将集合添加到列表中！"
                 )
                 show_warning(
-                    title="SteamCMD downloader",
-                    text="Empty list of mods returned, unable to add collection to list!",
-                    information="Please reach out to us on Github Issues page or\n#rimsort-testing on the Rocketman/CAI discord",
+                    title="SteamCMD 下载器",
+                    text="返回的模组列表为空，无法将集合添加到列表中！",
+                    information="请在 Github 问题页面上与我们联系，\n#或在Rocketman/CAI discord上进行#rimsort测试",
                 )
         if len(self.downloader_list_dupe_tracking.keys()) > 0:
             # Build a report from our dict
@@ -212,9 +212,9 @@ class SteamBrowser(QWidget):
                 dupe_report = dupe_report + f"{name} | {pfid}\n"
             # Notify the user
             show_warning(
-                title="SteamCMD downloader",
-                text="You already have these mods in your download list!",
-                information="Skipping the following mods which are already present in your download list!",
+                title="SteamCMD 下载器",
+                text="您的下载列表中已经有这些模组！",
+                information="跳过下载列表中已经存在的以下模组！",
                 details=dupe_report,
             )
             self.downloader_list_dupe_tracking = {}
@@ -253,7 +253,7 @@ class SteamBrowser(QWidget):
         page_title = self.current_title.split("Steam Workshop::", 1)[1]
         if publishedfileid not in self.downloader_list_mods_tracking:
             # Add pfid to tracking list
-            logger.debug(f"Tracking PublishedFileId for download: {publishedfileid}")
+            logger.debug(f"跟踪已发布的文件ID以供下载: {publishedfileid}")
             self.downloader_list_mods_tracking.append(publishedfileid)
             # Create our list item
             item = QListWidgetItem()
@@ -267,14 +267,14 @@ class SteamBrowser(QWidget):
                 item.setToolTip(
                     f"{label.text()}\n--> {self.url_prefix_sharedfiles}{publishedfileid}"
                 )
-            label.setObjectName("ListItemLabel")
+            label.setObjectName("列表项标签")
             # Set the size hint of the item to be the size of the label
             item.setSizeHint(label.sizeHint())
             self.downloader_list.addItem(item)
             self.downloader_list.setItemWidget(item, label)
         else:
             logger.debug(
-                f"Tried to add duplicate PFID to downloader list: {publishedfileid}"
+                f"尝试将重复的PFID添加到下载器列表: {publishedfileid}"
             )
             if publishedfileid not in self.downloader_list_dupe_tracking.keys():
                 if not title:
@@ -292,7 +292,7 @@ class SteamBrowser(QWidget):
 
         if context_item:  # Check if the right-clicked point corresponds to an item
             context_menu = QMenu(self)  # Downloader item context menu event
-            remove_item = context_menu.addAction("Remove mod from list")
+            remove_item = context_menu.addAction("从列表中删除模组")
             remove_item.triggered.connect(
                 partial(self._remove_mod_from_list, context_item)
             )
@@ -304,15 +304,15 @@ class SteamBrowser(QWidget):
             self.downloader_list.takeItem(self.downloader_list.row(context_item))
             self.downloader_list_mods_tracking.remove(publishedfileid)
         else:
-            logger.error("Steam Browser Error: Item not found in tracking list.")
+            logger.error("Steam 浏览器错误：在跟踪列表中找不到项目。")
 
     def _subscribe_to_mods_from_list(self) -> None:
         logger.debug(
-            f"Signaling Steamworks subscription handler with {len(self.downloader_list_mods_tracking)} mods"
+            f"使用 {len(self.downloader_list_mods_tracking)} 个模组的信号来通知Steamworks订阅处理程序"
         )
         self.steamworks_subscription_signal.emit(
             [
-                "subscribe",
+                "订阅",
                 [eval(str_pfid) for str_pfid in self.downloader_list_mods_tracking],
             ]
         )

@@ -102,7 +102,7 @@ class Settings(QObject):
                 # Mitigate issues when "instances" key is not parsed, but the old path attributes are present
                 if not data.get("instances"):
                     logger.debug(
-                        "Instances key not found in settings.json. Performing mitigation."
+                        "在 settings.json 中找不到实例key。执行缓解措施。"
                     )
                     steamcmd_prefix_default_instance_path = str(
                         Path(AppInfo().app_storage_folder / "instances" / "Default")
@@ -131,7 +131,7 @@ class Settings(QObject):
                         steamcmd_prefix_to_mitigate
                     ):
                         logger.debug(
-                            "Configured SteamCMD install path found. Attempting to migrate it to the Default instance path..."
+                            "找到已配置的 SteamCMD 安装路径。尝试将其迁移到默认实例路径..."
                         )
                         steamcmd_prefix_steamcmd_path = str(
                             Path(steamcmd_prefix_default_instance_path) / "steamcmd"
@@ -153,7 +153,7 @@ class Settings(QObject):
                                     f"{steamcmd_prefix_steam_path}_{current_timestamp}",
                                 )
                             logger.info(
-                                f"Migrated SteamCMD install path from {steamcmd_prefix_to_mitigate} to {steamcmd_prefix_default_instance_path}"
+                                f"将 SteamCMD 安装路径从 {steamcmd_prefix_to_mitigate} 迁移到 {steamcmd_prefix_default_instance_path}"
                             )
                             copytree(
                                 steamcmd_path_to_mitigate,
@@ -161,11 +161,11 @@ class Settings(QObject):
                                 symlinks=True,
                             )
                             logger.info(
-                                f"Deleting old SteamCMD install path at {steamcmd_path_to_mitigate}..."
+                                f"删除旧的 SteamCMD 安装路径 {steamcmd_path_to_mitigate}..."
                             )
                             rmtree(steamcmd_path_to_mitigate)
                             logger.info(
-                                f"Migrated SteamCMD data path from {steam_path_to_mitigate} to {steamcmd_prefix_default_instance_path}"
+                                f"将 SteamCMD 数据路径从 {steam_path_to_mitigate} 迁移到 {steamcmd_prefix_default_instance_path}"
                             )
                             copytree(
                                 steam_path_to_mitigate,
@@ -173,19 +173,19 @@ class Settings(QObject):
                                 symlinks=True,
                             )
                             logger.info(
-                                f"Deleting old SteamCMD data path at {steam_path_to_mitigate}..."
+                                f"删除旧的 SteamCMD 数据路径 {steam_path_to_mitigate}..."
                             )
                             rmtree(steam_path_to_mitigate)
                         except Exception as e:
                             logger.error(
-                                f"Failed to migrate SteamCMD install path. Error: {e}"
+                                f"迁移 SteamCMD 安装路径失败。报错: {e}"
                             )
                 elif (
                     not data.get("current_instance")
                     or data["current_instance"] not in data["instances"]
                 ):
                     logger.debug(
-                        "Current instance not found in settings.json. Performing mitigation."
+                        "在 settings.json 中找不到当前实例。执行缓解措施。"
                     )
                     data["current_instance"] = "Default"
                 else:
@@ -230,7 +230,7 @@ class Settings(QObject):
                     instances[instance_name] = Instance(**instance_data)
                 else:
                     logger.warning(
-                        f"Instance data for {instance_name} is not a valid type: {type(instance_data)}"
+                        f" {instance_name} 的实例数据不是有效类型: {type(instance_data)}"
                     )
             self.instances = instances
 

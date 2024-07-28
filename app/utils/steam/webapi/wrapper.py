@@ -51,11 +51,11 @@ class CollectionImport:
     def input_dialog(self):
         # Initialize the UI for entering collection links
         self.link_input = show_dialogue_input(
-            title="Add Workshop collection link",
-            label="Add Workshop collection link",
+            title="添加创意工坊集合链接",
+            label="添加创意工坊集合链接",
         )
         self.import_collection_link()
-        logger.info("Workshop collection link Input UI initialized successfully!")
+        logger.info("创意工坊集合链接 输入UI初始化成功！")
 
     def is_valid_collection_link(self, link):
         """
@@ -73,7 +73,7 @@ class CollectionImport:
 
     def import_collection_link(self):
         # Handle the import button click event
-        logger.info("Import Workshop collection clicked")
+        logger.info("单击导入创意工坊集合")
         collection_link = self.link_input[0]
         steamdb = (
             self.metadata_manager.external_steam_metadata
@@ -84,24 +84,24 @@ class CollectionImport:
         # Check if the input link is a valid workshop collection link
         if not self.is_valid_collection_link(collection_link):
             logger.error(
-                "Invalid Workshop collection link. Please enter a valid Workshop collection link."
+                "无效的创意工坊集合链接。请输入有效的创意工坊收集链接。"
             )
             # Show warning message box
             show_warning(
-                title="Invalid Link",
-                text="Invalid Workshop collection link. Please enter a valid Workshop collection link.",
+                title="无效链接",
+                text="无效的创意工坊集合链接。请输入有效的创意工坊收集链接。",
             )
             return
 
         # Check if there is a steamdb supplied
         if not steamdb:
             logger.error(
-                "Cannot import collection without SteamDB supplied! Please configure Steam Workshop Database in settings."
+                "没有提供 SteamDB 就无法导入收藏！请在设置中配置 Steam 创意工坊数据库。"
             )
             # Show warning message box
             show_warning(
-                title="Invalid Database",
-                text="Cannot import collection without SteamDB supplied! Please configure Steam Workshop Database in settings.",
+                title="无效数据库",
+                text="没有提供 SteamDB 就无法导入收藏！请在设置中配置 Steam 创意工坊数据库。",
             )
             return
 
@@ -122,12 +122,12 @@ class CollectionImport:
                         self.package_ids.append(steamdb[pfid]["packageId"])
                     else:
                         logger.warning(
-                            f"Failed to parse packageId from collection PublishedFileId {pfid}"
+                            f"无法从集合已发布的文件ID中解析模组ID {pfid}"
                         )
-                logger.info("Parsed packageIds from publishedfileids successfully")
+                logger.info("成功解析了已发布的文件ID中的模组ID")
         except Exception as e:
             logger.error(
-                f"An error occurred while fetching collection content: {str(e)}"
+                f"提取集合内容时出错: {str(e)}"
             )
 
 
@@ -153,7 +153,7 @@ class DynamicQuery(QObject):
     ):
         QObject.__init__(self)
 
-        logger.info("Initializing DynamicQuery")
+        logger.info("初始化 DynamicQuery")
         self.api = None
         self.apikey = apikey
         self.appid = appid
@@ -194,11 +194,11 @@ class DynamicQuery(QObject):
                     - (len(stacktrace) - (stacktrace.find(pattern) + len(pattern)))
                 ]  # If an HTTPError/SSLError from steam/urllib3 module(s) somehow is uncaught, try to remove the Steam API key from the stacktrace
             logger.warning(
-                f"Dynamic Query received an uncaught exception: {e.__class__.__name__}"
+                f"动态查询收到未捕获的异常: {e.__class__.__name__}"
             )
             self.dq_messaging_signal.emit(
-                "\nDynamicQuery failed to initialize WebAPI query!"
-                + "\nAre you connected to the internet?\nIs your configured key invalid or revoked?\n",
+                "\nDynamicQuery 无法初始化 WebAPI 查询！"
+                + "\n您是否已连接到互联网？\n您配置的密钥是否无效或被吊销？\n",
             )
 
     def create_steam_db(self, database: Dict[str, Any], publishedfileids: list) -> None:
@@ -227,7 +227,7 @@ class DynamicQuery(QObject):
                 # Uncomment to see the contents of missing_children
                 # logger.debug(missing_children)
                 self.dq_messaging_signal.emit(
-                    f"\nRetrieving dependency information for {len(missing_children)} missing children"
+                    f"\n正在获取 {len(missing_children)} 个缺失子项的依赖信息"
                 )
                 # Extend publishedfileids with the missing_children PublishedFileIds for final query
                 publishedfileids.extend(missing_children)
@@ -246,7 +246,7 @@ class DynamicQuery(QObject):
                     missing_children,
                 ) = self.IPublishedFileService_GetDetails(query, missing_children)
                 self.dq_messaging_signal.emit(
-                    "\nLaunching addiitonal full query to complete dependency information for the missing children"
+                    "\n启动额外的完整查询以补全缺失子项的依赖信息"
                 )
             else:  # Stop querying once we have 0 missing_children
                 missing_children = []
@@ -254,7 +254,7 @@ class DynamicQuery(QObject):
 
         if self.get_appid_deps:
             self.dq_messaging_signal.emit(
-                "\nAppID dependency retrieval enabled. Starting Steamworks API call(s)"
+                "\n已启用AppID依赖项检索。开始调用Steamworks API"
             )
             # ISteamUGC/GetAppDependencies
             self.ISteamUGC_GetAppDependencies(
@@ -262,13 +262,13 @@ class DynamicQuery(QObject):
             )
         else:
             self.dq_messaging_signal.emit(
-                "\nAppID dependency retrieval disabled. Skipping Steamworks API call(s)!"
+                "\n已禁用AppID依赖项检索。跳过Steamworks API调用！"
             )
 
         # Notify & return
         total = len(query["database"])
         self.dq_messaging_signal.emit(
-            f"\nReturning Steam Workshop metadata for {total} items"
+            f"\n正在返回Steam创意工坊的 {total} 个项目的元数据"
         )
         self.database.update(query)
 
@@ -291,7 +291,7 @@ class DynamicQuery(QObject):
                 )
         else:
             self.query = False
-            self.dq_messaging_signal.emit("AppIDQuery: WebAPI failed to initialize!")
+            self.dq_messaging_signal.emit("AppID查询：WebAPI初始化失败！")
 
     def IPublishedFileService_GetDetails(
         self, json_to_update: Dict[Any, Any], publishedfileids: list
@@ -313,10 +313,10 @@ class DynamicQuery(QObject):
         chunks_processed = 0
         total = len(publishedfileids)
         self.dq_messaging_signal.emit(
-            f"\nSteam WebAPI: IPublishedFileService/GetDetails initializing for {total} mods\n\n"
+            f"\nSteam WebAPI：正在为{total}个模组初始化IPublishedFileService/GetDetails服务\n\n"
         )
         self.dq_messaging_signal.emit(
-            f"IPublishedFileService/GetDetails chunk [0/{total}]"
+            f"IPublishedFileService/GetDetails 数据块 [0/{total}]"
         )
         if not self.api:  # If we don't have API initialized
             return None, None  # Exit query
@@ -435,7 +435,7 @@ class DynamicQuery(QObject):
                                 else:  # Child was not found in database, track it's pfid for later
                                     if child_pfid not in missing_children:
                                         logger.debug(
-                                            f"Could not find pfid {child_pfid} in database. Adding child to missing_children"
+                                            f"在数据库中未找到 pfid {child_pfid}。将子项添加到 missing_children 列表中"
                                         )
                                         missing_children.append(child_pfid)
             except Exception as e:
@@ -452,10 +452,10 @@ class DynamicQuery(QObject):
                         - (len(stacktrace) - (stacktrace.find(pattern) + len(pattern)))
                     ]
                 logger.error(
-                    f"IPublishedFileService/GetDetails errored querying batch [{chunks_processed}/{total}]: {stacktrace}"
+                    f"IPublishedFileService/GetDetails 在查询批次 [{chunks_processed}/{total}] 时出错: {stacktrace}"
                 )
             self.dq_messaging_signal.emit(
-                f"IPublishedFileService/GetDetails chunk [{chunks_processed}/{total}]"
+                f"IPublishedFileService/GetDetails 数据块 [{chunks_processed}/{total}]"
             )
         for missing_child in missing_children:
             if result["database"].get(missing_child) and result["database"][
@@ -587,15 +587,15 @@ class DynamicQuery(QObject):
             # Map the execution of the queries to the pool of processes
             results = pool.map(SteamworksAppDependenciesQuery.run, queries)
         # Merge the results from all processes into a single dictionary
-        self.dq_messaging_signal.emit("Processes completed!\nCollecting results")
+        self.dq_messaging_signal.emit("进程已完成！\n收集结果")
         pfids_appid_deps = {}
         for result in results:
             pfids_appid_deps.update(result)
-        self.dq_messaging_signal.emit(f"\nTotal: {len(pfids_appid_deps.keys())}")
+        self.dq_messaging_signal.emit(f"\n总数: {len(pfids_appid_deps.keys())}")
         # Uncomment to see the total metadata returned from all Processes
         # logger.debug(pfids_appid_deps)
         # Add our metadata to the query...
-        logger.debug("Populating AppID dependency information into database from query")
+        logger.debug("从查询中向数据库填充AppID依赖信息")
         for pfid in query["database"].keys():
             if int(pfid) in pfids_appid_deps:
                 for appid in pfids_appid_deps[int(pfid)]:
@@ -630,7 +630,7 @@ def ISteamRemoteStorage_GetCollectionDetails(
     metadata = []
     for chunk in list(chunks(_list=publishedfileids, limit=5000)):
         logger.debug(
-            f"Querying details for {len(chunk)} collection(s) via Steam WebAPI"
+            f"通过Steam WebAPI查询 {len(chunk)} 个集合的详细信息"
         )
         # Construct arguments to pass to the API call
         data = {"collectioncount": f"{str(len(chunk))}"}
@@ -641,7 +641,7 @@ def ISteamRemoteStorage_GetCollectionDetails(
             request = requests_post(url, data=data)
         except Exception as e:
             logger.warning(
-                f"Unable to complete request! Are you connected to the internet? Received exception: {e.__class__.__name__}"
+                f"无法完成请求！您是否已连接到互联网？收到异常: {e.__class__.__name__}"
             )
             return None
         try:  # Parse the JSON response
@@ -651,9 +651,9 @@ def ISteamRemoteStorage_GetCollectionDetails(
                 for mod_metadata in json_response["response"]["collectiondetails"]:
                     metadata.append(mod_metadata)
         except JSONDecodeError as e:
-            logger.error(f"Invalid JSON response: {e}")
+            logger.error(f"无效的 JSON 响应: {e}")
         finally:
-            logger.debug(f"Received WebAPI response {request.status_code} from query")
+            logger.debug(f"从查询中接收 WebAPI 响应 {request.status_code} ")
 
     return metadata
 
@@ -685,7 +685,7 @@ def ISteamRemoteStorage_GetPublishedFileDetails(
             request = requests_post(url, data=data)
         except Exception as e:
             logger.debug(
-                f"Unable to complete request! Are you connected to the internet? Received exception: {e.__class__.__name__}"
+                f"无法完成请求！您是否已连接到互联网？收到异常: {e.__class__.__name__}"
             )
             return None
         try:  # Parse the JSON response
@@ -694,9 +694,9 @@ def ISteamRemoteStorage_GetPublishedFileDetails(
                 for mod_metadata in json_response["response"]["publishedfiledetails"]:
                     metadata.append(mod_metadata)
         except JSONDecodeError as e:
-            logger.error(f"Invalid JSON response: {e}")
+            logger.error(f"无效的 JSON 响应: {e}")
         finally:
-            logger.debug(f"Received WebAPI response {request.status_code} from query")
+            logger.debug(f"从查询中接收 WebAPI 响应 {request.status_code} ")
 
     return metadata
 

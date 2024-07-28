@@ -29,7 +29,7 @@ class MultiButton(QWidget):
         self.main_action: Union[QPushButton, QComboBox]
 
         # Set the object name for styling
-        self.setObjectName("MultiButton")
+        self.setObjectName("多个按钮")
 
         # Use custom icon path, or use default kebab icons (Thanks Cousax)
         self.secondary_action_icon_path = (
@@ -53,7 +53,7 @@ class MultiButton(QWidget):
         elif isinstance(main_action, list):
             self.main_action = QComboBox(self)
             self.main_action.addItems(main_action)
-            self.main_action.setObjectName("MainUI")
+            self.main_action.setObjectName("主用户界面")
             self.main_action.setToolTip(main_action_tooltip)
             layout.addWidget(self.main_action)
 

@@ -35,14 +35,14 @@ class SteamcmdInterface:
         return cls._instance
 
     def __init__(self, steamcmd_prefix: str, validate: bool) -> None:
-        if not hasattr(self, "initialized"):
+        if not hasattr(self, "初始化"):
             self.initialized = True
             self.setup = False
             self.steamcmd_prefix = steamcmd_prefix
             super(SteamcmdInterface, self).__init__()
-            logger.debug("Initializing SteamcmdInterface")
+            logger.debug("初始化 Steamcmd 接口")
             self.initialize_prefix(steamcmd_prefix, validate)
-            logger.debug("Finished SteamcmdInterface initialization")
+            logger.debug("完成 Steamcmd 接口初始化")
 
     def initialize_prefix(self, steamcmd_prefix: str, validate: bool) -> None:
         self.steamcmd_prefix = steamcmd_prefix
@@ -69,14 +69,14 @@ class SteamcmdInterface:
         else:
             show_fatal_error(
                 "SteamcmdInterface",
-                f"Found platform {self.system}. steamcmd is not supported on this platform.",
+                f"找到平台 {self.system} 。此平台不支持 Steamcmd 。",
             )
             return
 
         if not os.path.exists(self.steamcmd_install_path):
             os.makedirs(self.steamcmd_install_path)
             logger.debug(
-                f"SteamCMD does not exist. Creating path for installation: {self.steamcmd_install_path}"
+                f"SteamCMD 不存在。创建安装路径: {self.steamcmd_install_path}"
             )
 
         if not os.path.exists(self.steamcmd_steam_path):
@@ -98,7 +98,7 @@ class SteamcmdInterface:
         if cls._instance is None:
             cls._instance = cls(*args, **kwargs)
         elif args or kwargs:
-            raise ValueError("SteamcmdInterface instance has already been initialized.")
+            raise ValueError("Steamcmd 接口实例已经初始化。")
         return cls._instance
 
     def check_symlink(self, link_path: str, target_local_folder: str) -> None:
@@ -113,12 +113,12 @@ class SteamcmdInterface:
         :type target_local_folder: str
         """
         logger.debug(
-            "Checking for SteamCMD <-> Local mods symlink, and recreating if it exists"
+            "检查 SteamCMD <-> Local mods 符号链接，如果存在，请重新创建"
         )
-        logger.debug(f"Link path: {link_path}")
+        logger.debug(f"链接路径: {link_path}")
         if os.path.exists(link_path):
             logger.debug(
-                f"Removing existing link at {link_path} and recreating link to {target_local_folder}"
+                f"删除 {link_path} 处的现有链接并重新创建指向 {target_local_folder} 的链接"
             )
             # Remove by type
             if os.path.islink(link_path) or os.path.ismount(link_path):
@@ -152,32 +152,32 @@ class SteamcmdInterface:
         runner.message("Checking for steamcmd...")
         if self.setup:
             runner.message(
-                f"Got it: {self.steamcmd}\n"
-                + f"Downloading list of {str(len(publishedfileids))} "
-                + f"publishedfileids to: {self.steamcmd_steam_path}"
+                f"接受: {self.steamcmd}\n"
+                + f"下载目录 {str(len(publishedfileids))} "
+                + f"已发布的文件ID 路径设置为: {self.steamcmd_steam_path}"
             )
             script = [
                 f'force_install_dir "{self.steamcmd_steam_path}"',
-                "login anonymous",
+                "匿名登录",
             ]
             download_cmd = "workshop_download_item 294100"
             for publishedfileid in publishedfileids:
                 if self.validate_downloads:
-                    script.append(f"{download_cmd} {publishedfileid} validate")
+                    script.append(f"{download_cmd} {publishedfileid} 验证")
                 else:
                     script.append(f"{download_cmd} {publishedfileid}")
-            script.extend(["quit\n"])
+            script.extend(["退出\n"])
             script_path = str((Path(gettempdir()) / "steamcmd_script.txt"))
             with open(script_path, "w", encoding="utf-8") as script_output:
                 script_output.write("\n".join(script))
-            runner.message(f"Compiled & using script: {script_path}")
+            runner.message(f"编译和使用脚本: {script_path}")
             runner.execute(
                 self.steamcmd,
-                [f'+runscript "{script_path}"'],
+                [f'+运行脚本 "{script_path}"'],
                 len(publishedfileids),
             )
         else:
-            runner.message("SteamCMD was not found. Please setup SteamCMD first!")
+            runner.message("找不到 SteamCMD。请先安装 SteamCMD！")
             self.on_steamcmd_not_found(runner=runner)
 
     def check_for_steamcmd(self, prefix: str) -> bool:
@@ -186,10 +186,10 @@ class SteamcmdInterface:
 
     def on_steamcmd_not_found(self, runner: RunnerPanel = None) -> None:
         answer = show_dialogue_conditional(
-            title="RimSort - SteamCMD setup",
-            text="RimSort was unable to find SteamCMD installed in the configured prefix:\n",
+            title="RimSort - SteamCMD 安装",
+            text="RimSort 无法找到配置的前缀中安装的 SteamCMD:\n",
             information=f"{self.steamcmd_prefix if self.steamcmd_prefix else '<None>'}\n\n"
-            + "Do you want to setup SteamCMD?",
+            + "您想安装 SteamCMD 吗？",
         )
         if answer == "&Yes":
             EventBus().do_install_steamcmd.emit()
@@ -201,23 +201,23 @@ class SteamcmdInterface:
     ) -> None:
         installed = None
         if reinstall:
-            runner.message("Existing steamcmd installation found!")
+            runner.message("找到现有的 steamcmd 安装！")
             runner.message(
-                f"Deleting existing installation from: {self.steamcmd_install_path}"
+                f"正在删除现有安装: {self.steamcmd_install_path}"
             )
             shutil.rmtree(self.steamcmd_install_path)
             os.makedirs(self.steamcmd_install_path)
         if not self.check_for_steamcmd(prefix=self.steamcmd_prefix):
             try:
                 runner.message(
-                    f"Downloading & extracting steamcmd release from: {self.steamcmd_url}"
+                    f"正在下载并解压steamcmd发行版: {self.steamcmd_url}"
                 )
                 if ".zip" in self.steamcmd_url:
                     with ZipFile(
                         BytesIO(requests.get(self.steamcmd_url).content)
                     ) as zipobj:
                         zipobj.extractall(self.steamcmd_install_path)
-                    runner.message("Installation completed")
+                    runner.message("安装完成")
                     installed = True
                 elif ".tar.gz" in self.steamcmd_url:
                     with (
@@ -225,48 +225,48 @@ class SteamcmdInterface:
                         tarfile.open(fileobj=rx.raw, mode="r:gz") as tarobj,
                     ):
                         tarobj.extractall(self.steamcmd_install_path)
-                    runner.message("Installation completed")
+                    runner.message("安装完成")
                     installed = True
             except:
-                runner.message("Installation failed")
+                runner.message("安装失败")
                 show_fatal_error(
                     "SteamcmdInterface",
-                    f"Failed to download steamcmd for {self.system}",
-                    "Did the file/url change?\nDoes your environment have access to the internet?",
+                    f"无法下载 {self.system} 的 steamcmd",
+                    "文件/网址是否更改？\n您的环境是否可以访问 Internet？",
                 )
         else:
-            runner.message("SteamCMD already installed...")
+            runner.message("SteamCMD 已安装...")
             show_warning(
                 "SteamcmdInterface",
-                f"A steamcmd runner already exists at: {self.steamcmd}",
+                f"steamcmd 运行器已存在于: {self.steamcmd}",
             )
             answer = show_dialogue_conditional(
-                "Reinstall?",
-                "Would you like to reinstall SteamCMD?",
-                f"Existing install: {self.steamcmd_install_path}",
+                "重新安装?",
+                "您想重新安装 SteamCMD 吗？",
+                f"现有的安装: {self.steamcmd_install_path}",
             )
             if answer == "&Yes":
-                runner.message(f"Reinstalling SteamCMD: {self.steamcmd_install_path}")
+                runner.message(f"重新安装 SteamCMD: {self.steamcmd_install_path}")
                 self.setup_steamcmd(symlink_source_path, True, runner)
         if installed:
             if not os.path.exists(self.steamcmd_content_path):
                 os.makedirs(self.steamcmd_content_path)
                 runner.message(
-                    f"Workshop content path does not exist. Creating for symlinking:\n\n{self.steamcmd_content_path}\n"
+                    f"创意工坊内容路径不存在。创建符号链接:\n\n{self.steamcmd_content_path}\n"
                 )
             symlink_destination_path = str(
                 (Path(self.steamcmd_content_path) / "294100")
             )
-            runner.message(f"Symlink source : {symlink_source_path}")
-            runner.message(f"Symlink destination: {symlink_destination_path}")
+            runner.message(f"符号链接源 : {symlink_source_path}")
+            runner.message(f"符号链接目标: {symlink_destination_path}")
             if os.path.exists(symlink_destination_path):
                 runner.message(
-                    f"Symlink destination already exists! Please remove existing destination:\n\n{symlink_destination_path}\n"
+                    f"符号链接目标已经存在！请删除现有目的地:\n\n{symlink_destination_path}\n"
                 )
             else:
                 answer = show_dialogue_conditional(
-                    "Create symlink?",
-                    "Would you like to create a symlink as followed?",
+                    "创建符号链接？",
+                    "是否要按如下方式创建符号链接？",
                     f"[{symlink_source_path}] -> " + symlink_destination_path,
                 )
                 if answer == "&Yes":
@@ -276,7 +276,7 @@ class SteamcmdInterface:
                         )
                         if os.path.exists(symlink_destination_path):
                             logger.debug(
-                                f"Removing existing link at {symlink_destination_path} and recreating link to {symlink_source_path}"
+                                f"删除 {symlink_destination_path} 处的现有链接并重新创建指向  {symlink_source_path} 的链接"
                             )
                             # Remove by type
                             if os.path.islink(
@@ -302,12 +302,12 @@ class SteamcmdInterface:
                         self.setup = True
                     except Exception as e:
                         runner.message(
-                            f"Failed to create symlink. Error: {type(e).__name__}: {str(e)}"
+                            f"无法创建符号链接。错误: {type(e).__name__}: {str(e)}"
                         )
                         show_fatal_error(
                             "SteamcmdInterface",
-                            f"Failed to create symlink for {self.system}",
-                            f"Error: {type(e).__name__}: {str(e)}",
+                            f"无法为 {self.system}创建符号链接",
+                            f"错误: {type(e).__name__}: {str(e)}",
                         )
 
 

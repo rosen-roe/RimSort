@@ -14,18 +14,18 @@ class ScrollLabel(QScrollArea):
         """
         Initialize the class.
         """
-        logger.debug("Initializing ScrollLabel")
+        logger.debug("初始化滚动标签")
         super(ScrollLabel, self).__init__()
 
         # Enable styling
-        self.setObjectName("descriptionWidget")
+        self.setObjectName("小部件描述")
 
         # Enabling scrolling
         self.setWidgetResizable(True)
 
         # QFrame to store content
         self.content = QFrame(self)
-        self.content.setObjectName("descriptionContent")
+        self.content.setObjectName("内容描述")
         self.setWidget(self.content)
 
         # Layout to add label to
@@ -36,7 +36,7 @@ class ScrollLabel(QScrollArea):
 
         # Label to store text
         self.label = QLabel(self.content)
-        self.label.setObjectName("descriptionLabel")
+        self.label.setObjectName("标签描述")
         self.label.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # Making label multi-line
@@ -45,7 +45,7 @@ class ScrollLabel(QScrollArea):
         # Adding label to the layout
         self.main_layout.addWidget(self.label)
 
-        logger.debug("Finished ScrollLabel initialization")
+        logger.debug("已完成滚动标签初始化")
 
     def setText(self, text: str) -> None:
         self.label.setText(text)

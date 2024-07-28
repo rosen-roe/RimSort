@@ -33,7 +33,7 @@ class MissingModsPrompt(QWidget):
         steam_workshop_metadata: Dict[str, Any],
     ):
         super().__init__()
-        logger.debug("Initializing MissingModsPrompt")
+        logger.debug("初始化缺少的模组提示符")
 
         self.installEventFilter(self)
 
@@ -41,10 +41,10 @@ class MissingModsPrompt(QWidget):
         self.DEPENDENCY_TAG = "_-_DEPENDENCY_-_"
         self.packageids = packageids
         self.steam_workshop_metadata = steam_workshop_metadata
-        self.setObjectName("missingModsPanel")
+        self.setObjectName("缺少模组面板")
         # MOD LABEL
         self.missing_mods_label = QLabel(
-            "There are mods missing from the active mods list!"
+            "启用模组列表中缺少模组！"
         )
         self.missing_mods_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -60,9 +60,9 @@ class MissingModsPrompt(QWidget):
 
         # DETAILS WIDGETS
         self.details_label = QLabel(
-            "\nUser-configured SteamDB database was queried. The following table displays mods available for download from Steam. "
-            + '\n\nRimworld mods on Steam Workshop that share a packageId are "variants". Please keep this in mind before downloading. '
-            + "\n\nPlease select your preferred mod variant in the table below. You can also open each variant in Steam/Web browser to verify."
+            "\n查询了用户配置的 SteamDB 数据库。下表显示了可从 Steam 下载的模组。"
+            + '\n\nSteam 创意工坊上共享模组ID的Rimworld 模组是"变体" 。下载前请记住这一点。'
+            + "\n\n请在下表中选择您喜欢的模组变体。您也可以在Steam/Web浏览器中打开每个变体进行验证。"
         )
         self.details_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -71,11 +71,11 @@ class MissingModsPrompt(QWidget):
         self.editor_model = QStandardItemModel(0, 5)
         self.editor_model.setHorizontalHeaderLabels(
             [
-                "Name",
-                "PackageId",
-                "Game Versions",
-                "# Variants",
-                "PublishedFileID",
+                "名称",
+                "模组ID",
+                "游戏版本",
+                "# 变体",
+                "已发布的文件ID",
                 # "Open page",
             ]
         )
@@ -105,14 +105,14 @@ class MissingModsPrompt(QWidget):
         self.editor_table_view.horizontalHeader().setSectionResizeMode(
             4, QHeaderView.ResizeMode.ResizeToContents
         )
-        self.editor_cancel_button = QPushButton("Do nothing and exit")
+        self.editor_cancel_button = QPushButton("不执行任何操作并退出")
         self.editor_cancel_button.clicked.connect(self.close)
-        self.editor_download_steamcmd_button = QPushButton("Download with SteamCMD")
+        self.editor_download_steamcmd_button = QPushButton("使用 SteamCMD 下载")
         self.editor_download_steamcmd_button.clicked.connect(
             partial(self._download_list_from_table, mode="steamcmd")
         )
         self.editor_download_steamworks_button = QPushButton(
-            "Download with Steam client"
+            "使用 Steam 客户端下载"
         )
         self.editor_download_steamworks_button.clicked.connect(
             partial(self._download_list_from_table, mode="steamworks")

@@ -13,8 +13,8 @@ class ToddsInterface:
     Create ToddsInterface object to provide an interface for todds functionality
     """
 
-    def __init__(self, preset="optimized", dry_run=False, overwrite=False) -> None:
-        logger.info("ToddsInterface initilizing...")
+    def __init__(self, preset="优化", dry_run=False, overwrite=False) -> None:
+        logger.info("Todds接口启动...")
         if overwrite:
             overwrite_flag = "-o"
         else:
@@ -22,11 +22,11 @@ class ToddsInterface:
         self.cwd = os.getcwd()
         self.system = platform.system()
         # Check if the preset is one of the old presets and change it to "optimized" if necessary
-        if preset in ["low", "medium", "high"]:
-            preset = "optimized"
+        if preset in ["低", "中", "高"]:
+            preset = "优化"
         self.preset = preset
         self.todds_presets = {
-            "clean": [
+            "清理": [
                 "-cl",
                 "-o",
                 "-ss",
@@ -34,7 +34,7 @@ class ToddsInterface:
                 "-p",
                 "-t",
             ],
-            "optimized": [
+            "优化": [
                 "-f",
                 "BC1",
                 "-af",
@@ -69,20 +69,20 @@ class ToddsInterface:
         else:
             todds_executable = "todds"
         todds_exe_path = str(AppInfo().application_folder / "todds" / todds_executable)
-        logger.info("Checking for todds...")
+        logger.info("检查 todds...")
         if os.path.exists(todds_exe_path):
-            logger.debug(f"Found todds executable at: {todds_exe_path}")
+            logger.debug(f"找到了 todds 的可执行文件位于: {todds_exe_path}")
             args = self.todds_presets[self.preset]
             args.append(target_path)
             if not runner.todds_dry_run_support:
-                runner.message("Initiating todds...")
+                runner.message("启动 todds...")
                 runner.message("Courtesy of joseasoler#1824")
-                runner.message(f"Using configured preset: {self.preset}\n\n")
+                runner.message(f"使用配置的预设: {self.preset}\n\n")
             runner.execute(todds_exe_path, args, -1)
         else:
             runner.message(
-                "ERROR: todds was not found. If you are running from source, please ensure you have followed the correct steps in the Development Guide:\n"
-                + "https://github.com/RimSort/RimSort/wiki/Development-Guide\n\nPlease reach out to us for support at: https://github.com/oceancabbage/RimSort/issues"
+                "错误：找不到 todds。如果您从源代码运行，请确保您已按照开发指南中的正确步骤操作:\n"
+                + "https://github.com/RimSort/RimSort/wiki/Development-Guide \n\n请联系我们寻求支持: https://github.com/oceancabbage/RimSort/issues"
             )
 
 

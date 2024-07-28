@@ -68,13 +68,13 @@ class MainWindowController(QObject):
     def on_refresh_finished(self) -> None:
         self.set_buttons_enabled(True)
         self.main_window.game_version_label.setText(
-            "RimWorld version " + MetadataManager.instance().game_version
+            "RimWorld 版本 " + MetadataManager.instance().game_version
         )
 
     @Slot()
     def on_save_button_animation_start(self) -> None:
         logger.debug(
-            "Active mods list has been updated. Managing save button animation state."
+            "启用模组列表已更新。管理保存按钮动画状态。"
         )
         active_mods_uuids = (
             self.main_window.main_content_panel.mods_panel.active_mods_list.uuids
@@ -85,13 +85,13 @@ class MainWindowController(QObject):
             != self.main_window.main_content_panel.active_mods_uuids_last_save
         ):
             if not self.main_window.save_button_flashing_animation.isActive():
-                logger.debug("Starting save button animation")
+                logger.debug("启动保存按钮动画")
                 self.main_window.save_button_flashing_animation.start(
                     500
                 )  # Blink every 500 milliseconds
         else:
             if self.main_window.save_button_flashing_animation.isActive():
-                logger.debug("Stopping save button animation")
+                logger.debug("停止保存按钮动画")
                 self.main_window.save_button_flashing_animation.stop()
                 self.main_window.save_button.setObjectName("")
                 self.main_window.save_button.style().unpolish(

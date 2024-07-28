@@ -163,12 +163,12 @@ class ModListItemInner(QWidget):
                     ModListIcons.csharp_icon().pixmap(QSize(20, 20))
                 )
                 self.csharp_icon.setToolTip(
-                    "Contains custom C# assemblies (custom code)"
+                    "包含自定义的C#程序集（自定义代码）"
                 )
             else:
                 self.xml_icon = QLabel()
                 self.xml_icon.setPixmap(ModListIcons.xml_icon().pixmap(QSize(20, 20)))
-                self.xml_icon.setToolTip("Contains custom content (textures / XML)")
+                self.xml_icon.setToolTip("包含自定义内容（纹理/XML）")
         self.git_icon = None
         if (
             self.metadata_manager.internal_local_metadata[self.uuid]["data_source"]
@@ -180,7 +180,7 @@ class ModListItemInner(QWidget):
         ):
             self.git_icon = QLabel()
             self.git_icon.setPixmap(ModListIcons.git_icon().pixmap(QSize(20, 20)))
-            self.git_icon.setToolTip("Local mod that contains a git repository")
+            self.git_icon.setToolTip("包含Git仓库的本地模组")
         self.steamcmd_icon = None
         if self.metadata_manager.internal_local_metadata[self.uuid][
             "data_source"
@@ -191,7 +191,7 @@ class ModListItemInner(QWidget):
             self.steamcmd_icon.setPixmap(
                 ModListIcons.steamcmd_icon().pixmap(QSize(20, 20))
             )
-            self.steamcmd_icon.setToolTip("Local mod that can be used with SteamCMD")
+            self.steamcmd_icon.setToolTip("可与SteamCMD一起使用的本地模组")
         # Warning icon hidden by default
         self.warning_icon_label = ClickableQLabel()
         self.warning_icon_label.clicked.connect(
@@ -218,7 +218,7 @@ class ModListItemInner(QWidget):
             if data_source == "expansion":
                 self.mod_source_icon.setObjectName("expansion")
                 self.mod_source_icon.setToolTip(
-                    "Official RimWorld content by Ludeon Studios"
+                    "由Ludeon Studios制作的RimWorld官方内容"
                 )
             elif data_source == "local":
                 if self.metadata_manager.internal_local_metadata[self.uuid].get(
@@ -230,18 +230,18 @@ class ModListItemInner(QWidget):
                 ):
                     self.mod_source_icon.setObjectName("steamcmd")
                 else:
-                    self.mod_source_icon.setObjectName("local")
-                    self.mod_source_icon.setToolTip("Installed locally")
+                    self.mod_source_icon.setObjectName("本地")
+                    self.mod_source_icon.setToolTip("本地安装")
             elif data_source == "workshop":
-                self.mod_source_icon.setObjectName("workshop")
-                self.mod_source_icon.setToolTip("Subscribed via Steam")
+                self.mod_source_icon.setObjectName("创意工坊")
+                self.mod_source_icon.setToolTip("通过Steam订阅")
         # Set label color if mod is invalid
         if self.filtered:
-            self.main_label.setObjectName("ListItemLabelFiltered")
+            self.main_label.setObjectName("筛选的列表项标签")
         elif self.invalid or self.mismatch:
-            self.main_label.setObjectName("ListItemLabelInvalid")
+            self.main_label.setObjectName("列表项标签无效")
         else:
-            self.main_label.setObjectName("ListItemLabel")
+            self.main_label.setObjectName("列表项标签")
         # Add icons
         if self.git_icon:
             self.main_item_layout.addWidget(self.git_icon, Qt.AlignmentFlag.AlignRight)
@@ -299,27 +299,27 @@ class ModListItemInner(QWidget):
         authors_text = (
             ", ".join(authors_tag.get("li", ["Not specified"]))
             if isinstance(authors_tag, dict)
-            else authors_tag or "Not specified"
+            else authors_tag or "未明确"
         )
-        author_line = f"Authors: {authors_text}\n"
+        author_line = f"作者: {authors_text}\n"
 
         package_id = metadata.get("packageid", "Not specified")
-        package_id_line = f"PackageID: {package_id}\n"
+        package_id_line = f"模组ID: {package_id}\n"
 
         mod_version = metadata.get("modversion", "Not specified")
-        modversion_line = f"Mod Version: {mod_version}\n"
+        modversion_line = f"模组版本: {mod_version}\n"
 
-        supported_versions_tag = metadata.get("supportedversions", {})
+        supported_versions_tag = metadata.get("支持的版本", {})
         supported_versions_list = supported_versions_tag.get("li")
         supported_versions_text = (
             ", ".join(supported_versions_list)
             if isinstance(supported_versions_list, list)
             else supported_versions_list or "Not specified"
         )
-        supported_versions_line = f"Supported Versions: {supported_versions_text}\n"
+        supported_versions_line = f"支持的版本: {supported_versions_text}\n"
 
         path = metadata.get("path", "Not specified")
-        path_line = f"Path: {path}"
+        path_line = f"路径: {path}"
 
         return "".join(
             [
@@ -356,7 +356,7 @@ class ModListItemInner(QWidget):
             return ModListIcons.steam_icon()
         else:
             logger.error(
-                f"No type found for ModListItemInner with package id {self.metadata_manager.internal_local_metadata[self.uuid].get('packageid')}"
+                f"未找到具有模组ID {self.metadata_manager.internal_local_metadata[self.uuid].get('packageid')} 的模组列表项内部的类型"
             )
 
     def resizeEvent(self, event: QResizeEvent) -> None:
@@ -406,7 +406,7 @@ class ModListItemInner(QWidget):
         else:
             new_widget_object_name = "ListItemLabel"
         if widget_object_name != new_widget_object_name:
-            logger.debug("Repolishing: " + new_widget_object_name)
+            logger.debug("优化升级: " + new_widget_object_name)
             self.main_label.setObjectName(new_widget_object_name)
             self.main_label.style().unpolish(self.main_label)
             self.main_label.style().polish(self.main_label)
@@ -571,7 +571,7 @@ class ModListWidget(QListWidget):
         # into widgets. Used for an optimization strategy for `handle_rows_inserted`
         self.uuids = list()
         self.ignore_warning_list = []
-        logger.debug("Finished ModListWidget initialization")
+        logger.debug("模组列表小部件初始化完成")
 
     def dropEvent(self, event: QDropEvent) -> None:
         super().dropEvent(event)
@@ -594,7 +594,7 @@ class ModListWidget(QListWidget):
                 self.uuids.insert(idx, uuid)
         # Update list signal
         logger.debug(
-            f"Emitting {self.list_type} list update signal after rows dropped [{self.count()}]"
+            f"在删除行之后，发出  {self.list_type} 列表更新信号 [{self.count()}]"
         )
         self.list_update_signal.emit("drop")
 
@@ -616,11 +616,11 @@ class ModListWidget(QListWidget):
             # Get the item at the local position
             item = self.itemAt(pos_local)
             if not isinstance(item, QListWidgetItem):
-                logger.debug("Mod list right-click non-QListWidgetItem")
+                logger.debug("在模组列表中右键点击了无效项目")
                 return super().eventFilter(source_object, event)
 
             # Otherwise, begin calculation
-            logger.info("USER ACTION: Open right-click mod_list_item contextMenu")
+            logger.info("USER ACTION: 打开右键点击 mod_list_item 的上下文菜单")
 
             # GIT MOD PATHS
             # A list of git mod paths to update
@@ -688,7 +688,7 @@ class ModListWidget(QListWidget):
             selected_items = self.selectedItems()
             # Single item selected
             if len(selected_items) == 1:
-                logger.debug(f"{len(selected_items)} items selected")
+                logger.debug(f"已选择 {len(selected_items)} 个项目")
                 source_item = selected_items[0]
                 if type(source_item) is QListWidgetItem:
                     item_data = source_item.data(Qt.ItemDataRole.UserRole)
@@ -698,13 +698,13 @@ class ModListWidget(QListWidget):
                     mod_data_source = mod_metadata.get("data_source")
                     # Open folder action text
                     open_folder_action = QAction()
-                    open_folder_action.setText("Open folder")
+                    open_folder_action.setText("打开文件")
                     # If we have a "url" or "steam_url"
                     if mod_metadata.get("url") or mod_metadata.get("steam_url"):
                         open_url_browser_action = QAction()
-                        open_url_browser_action.setText("Open URL in browser")
+                        open_url_browser_action.setText("在浏览器中打开 URL")
                         copy_url_to_clipboard_action = QAction()
-                        copy_url_to_clipboard_action.setText("Copy URL to clipboard")
+                        copy_url_to_clipboard_action.setText("将 URL 复制到剪贴板")
                     # If we have a "steam_uri"
                     if (
                         mod_metadata.get("steam_uri")
@@ -713,7 +713,7 @@ class ModListWidget(QListWidget):
                         ].steam_client_integration
                     ):
                         open_mod_steam_action = QAction()
-                        open_mod_steam_action.setText("Open mod in Steam")
+                        open_mod_steam_action.setText("在 Steam 中打开模组")
                     # Conversion options (SteamCMD <-> local) + re-download (local mods found in SteamDB and SteamCMD)
                     if mod_data_source == "local":
                         mod_name = mod_metadata.get("name")
@@ -732,7 +732,7 @@ class ModListWidget(QListWidget):
                             # Convert local mods -> steamcmd
                             convert_local_steamcmd_action = QAction()
                             convert_local_steamcmd_action.setText(
-                                "Convert local mod to SteamCMD"
+                                "将本地模组转换为SteamCMD格式"
                             )
                         if mod_metadata.get("steamcmd"):
                             steamcmd_mod_paths.append(mod_folder_path)
@@ -740,18 +740,18 @@ class ModListWidget(QListWidget):
                             # Convert steamcmd mods -> local
                             convert_steamcmd_local_action = QAction()
                             convert_steamcmd_local_action.setText(
-                                "Convert SteamCMD mod to local"
+                                "将SteamCMD模组转换为本地模组"
                             )
                             # Re-download steamcmd mods
                             re_steamcmd_action = QAction()
-                            re_steamcmd_action.setText("Re-download mod with SteamCMD")
+                            re_steamcmd_action.setText("使用SteamCMD重新下载模组")
                         # Update local mods that contain git repos that are not steamcmd mods
                         if not mod_metadata.get("steamcmd") and mod_metadata.get(
                             "git_repo"
                         ):
                             git_paths.append(mod_folder_path)
                             re_git_action = QAction()
-                            re_git_action.setText("Update mod with git")
+                            re_git_action.setText("使用git更新模组")
                     # If Workshop, and pfid, allow Steam actions
                     if mod_data_source == "workshop" and mod_metadata.get(
                         "publishedfileid"
@@ -764,7 +764,7 @@ class ModListWidget(QListWidget):
                         # Convert steam mods -> local
                         convert_workshop_local_action = QAction()
                         convert_workshop_local_action.setText(
-                            "Convert Steam mod to local"
+                            "将Steam模组转换为本地模组"
                         )
                         # Only enable subscription actions if user has enabled Steam client integration
                         if self.settings_controller.settings.instances[
@@ -772,11 +772,11 @@ class ModListWidget(QListWidget):
                         ].steam_client_integration:
                             # Re-subscribe steam mods
                             re_steam_action = QAction()
-                            re_steam_action.setText("Re-subscribe mod with Steam")
+                            re_steam_action.setText("通过Steam重新订阅模组")
                             # Unsubscribe steam mods
                             unsubscribe_mod_steam_action = QAction()
                             unsubscribe_mod_steam_action.setText(
-                                "Unsubscribe mod with Steam"
+                                "通过Steam取消订阅模组"
                             )
                     # SteamDB blacklist options
                     if (
@@ -790,33 +790,33 @@ class ModListWidget(QListWidget):
                             steamdb_remove_blacklist = publishedfileid
                             remove_from_steamdb_blacklist_action = QAction()
                             remove_from_steamdb_blacklist_action.setText(
-                                "Remove mod from SteamDB blacklist"
+                                "从SteamDB黑名单中移除模组"
                             )
                         else:
                             steamdb_add_blacklist = publishedfileid
                             add_to_steamdb_blacklist_action = QAction()
                             add_to_steamdb_blacklist_action.setText(
-                                "Add mod to SteamDB blacklist"
+                                "从SteamDB黑名单中添加模组"
                             )
                     # Copy packageId to clipboard
                     copy_packageId_to_clipboard_action = QAction()
                     copy_packageId_to_clipboard_action.setText(
-                        "Copy packageId to clipboard"
+                        "将模组ID复制到剪贴板"
                     )
                     # Edit mod rules with Rule Editor (only for individual mods)
                     edit_mod_rules_action = QAction()
-                    edit_mod_rules_action.setText("Edit mod with Rule Editor")
+                    edit_mod_rules_action.setText("使用规则编辑器编辑模组")
                     # Ignore error action
                     toggle_warning_action = QAction()
-                    toggle_warning_action.setText("Toggle warning")
+                    toggle_warning_action.setText("启用/禁用警告")
                     # Mod deletion actions
                     delete_mod_action = QAction()
-                    delete_mod_action.setText("Delete mod")
+                    delete_mod_action.setText("删除模组")
                     delete_mod_keep_dds_action = QAction()
-                    delete_mod_keep_dds_action.setText("Delete mod (keep .dds)")
+                    delete_mod_keep_dds_action.setText("删除模组（保留.dds文件）")
                     delete_mod_dds_only_action = QAction()
                     delete_mod_dds_only_action.setText(
-                        "Delete optimized textures (.dds files only)"
+                        "仅删除优化后的纹理/贴图文件（.dds文件）"
                     )
             # Multiple items selected
             elif len(selected_items) > 1:  # Multiple items selected
@@ -831,11 +831,11 @@ class ModListWidget(QListWidget):
                         mod_data_source = mod_metadata.get("data_source")
                         # Open folder action text
                         open_folder_action = QAction()
-                        open_folder_action.setText("Open folder(s)")
+                        open_folder_action.setText("打开文件")
                         # If we have a "url" or "steam_url"
                         if mod_metadata.get("url") or mod_metadata.get("steam_url"):
                             open_url_browser_action = QAction()
-                            open_url_browser_action.setText("Open URL(s) in browser")
+                            open_url_browser_action.setText("浏览器中打开URL")
                         # Conversion options (local <-> SteamCMD)
                         if mod_data_source == "local":
                             mod_name = mod_metadata.get("name")
@@ -855,7 +855,7 @@ class ModListWidget(QListWidget):
                                 if not convert_local_steamcmd_action:
                                     convert_local_steamcmd_action = QAction()
                                     convert_local_steamcmd_action.setText(
-                                        "Convert local mod(s) to SteamCMD"
+                                        "将本地模组转换为SteamCMD模组"
                                     )
                             if mod_metadata.get("steamcmd"):
                                 steamcmd_mod_paths.append(mod_folder_path)
@@ -866,13 +866,13 @@ class ModListWidget(QListWidget):
                                 if not convert_steamcmd_local_action:
                                     convert_steamcmd_local_action = QAction()
                                     convert_steamcmd_local_action.setText(
-                                        "Convert SteamCMD mod(s) to local"
+                                        "将SteamCMD模组转换为本地模组"
                                     )
                                 # Re-download steamcmd mods
                                 if not re_steamcmd_action:
                                     re_steamcmd_action = QAction()
                                     re_steamcmd_action.setText(
-                                        "Re-download mod(s) with SteamCMD"
+                                        "使用SteamCMD重新下载模组"
                                     )
                             # Update git mods if local mod with git repo, but not steamcmd
                             if not mod_metadata.get("steamcmd") and mod_metadata.get(
@@ -881,7 +881,7 @@ class ModListWidget(QListWidget):
                                 git_paths.append(mod_folder_path)
                                 if not re_git_action:
                                     re_git_action = QAction()
-                                    re_git_action.setText("Update mod(s) with git")
+                                    re_git_action.setText("使用git更新模组")
                         # No "Edit mod rules" when multiple selected
                         # Toggle warning
                         if not toggle_warning_action:
@@ -900,7 +900,7 @@ class ModListWidget(QListWidget):
                             if not convert_workshop_local_action:
                                 convert_workshop_local_action = QAction()
                                 convert_workshop_local_action.setText(
-                                    "Convert Steam mod(s) to local"
+                                    "将Steam模组转换为本地模组"
                                 )
                             # Only enable subscription actions if user has enabled Steam client integration
                             if self.settings_controller.settings.instances[
@@ -910,31 +910,31 @@ class ModListWidget(QListWidget):
                                 if not re_steam_action:
                                     re_steam_action = QAction()
                                     re_steam_action.setText(
-                                        "Re-subscribe mod(s) with Steam"
+                                        "通过Steam重新订阅模组"
                                     )
                                 # Unsubscribe steam mods
                                 if not unsubscribe_mod_steam_action:
                                     unsubscribe_mod_steam_action = QAction()
                                     unsubscribe_mod_steam_action.setText(
-                                        "Unsubscribe mod(s) with Steam"
+                                        "通过Steam取消订阅模组"
                                     )
                         # No SteamDB blacklist options when multiple selected
                         # Prohibit deletion of game files
                         if not delete_mod_action:
                             delete_mod_action = QAction()
                             # Delete mod action text
-                            delete_mod_action.setText("Delete mod(s)")
+                            delete_mod_action.setText("删除模组")
                         if not delete_mod_keep_dds_action:
                             delete_mod_keep_dds_action = QAction()
                             # Delete mod action text
                             delete_mod_keep_dds_action.setText(
-                                "Delete mod(s) (keep .dds)"
+                                "删除模组（保留.dds文件）"
                             )
                         if not delete_mod_dds_only_action:
                             delete_mod_dds_only_action = QAction()
                             # Delete mod action text
                             delete_mod_dds_only_action.setText(
-                                "Delete optimized textures (.dds files only)"
+                                "仅删除优化后的纹理/贴图文件（.dds文件）"
                             )
             # Put together our contextMenu
             if open_folder_action:
@@ -950,7 +950,7 @@ class ModListWidget(QListWidget):
                 or delete_mod_keep_dds_action
                 or delete_mod_dds_only_action
             ):
-                deletion_options_menu = QMenu(title="Deletion options")
+                deletion_options_menu = QMenu(title="删除选项")
                 if delete_mod_action:
                     deletion_options_menu.addAction(delete_mod_action)
                 if delete_mod_keep_dds_action:
@@ -965,9 +965,9 @@ class ModListWidget(QListWidget):
                 or edit_mod_rules_action
                 or re_git_action
             ):
-                misc_options_menu = QMenu(title="Miscellaneous options")
+                misc_options_menu = QMenu(title="其他选项")
                 if copy_packageId_to_clipboard_action or copy_url_to_clipboard_action:
-                    clipboard_options_menu = QMenu(title="Clipboard options")
+                    clipboard_options_menu = QMenu(title="剪贴板选项")
                     clipboard_options_menu.addAction(copy_packageId_to_clipboard_action)
                     if copy_url_to_clipboard_action:
                         clipboard_options_menu.addAction(copy_url_to_clipboard_action)
@@ -990,7 +990,7 @@ class ModListWidget(QListWidget):
                 local_folder = self.settings_controller.settings.instances[
                     self.settings_controller.settings.current_instance
                 ].local_folder
-                workshop_actions_menu = QMenu(title="Workshop mods options")
+                workshop_actions_menu = QMenu(title="创意工坊模组选项")
                 if local_folder and convert_local_steamcmd_action:
                     workshop_actions_menu.addAction(convert_local_steamcmd_action)
                 if local_folder and convert_steamcmd_local_action:
@@ -1023,12 +1023,12 @@ class ModListWidget(QListWidget):
                 ):
                     # Prompt user
                     answer = show_dialogue_conditional(
-                        title="Are you sure?",
-                        text=f"You have selected {len(git_paths)} git mods to be updated.",
-                        information="Do you want to proceed?",
+                        title="是否确定？",
+                        text=f"您已选择 {len(git_paths)} 个Git模组进行更新。",
+                        information="是否要继续？",
                     )
                     if answer == "&Yes":
-                        logger.debug(f"Updating {len(git_paths)} git mod(s)")
+                        logger.debug(f"正在更新 {len(git_paths)} 个Git模组")
                         self.update_git_mods_signal.emit(git_paths)
                     return True
                 elif (  # ACTION: Convert local mod(s) -> SteamCMD
@@ -1049,17 +1049,17 @@ class ModListWidget(QListWidget):
                                 try:
                                     os.rename(original_mod_path, renamed_mod_path)
                                     logger.debug(
-                                        f'Successfully "converted" local mod -> SteamCMD by renaming from {folder_name} -> {publishedfileid}'
+                                        f'成功将本地模组转换为SteamCMD模组，通过重命名从 {folder_name} 到 {publishedfileid}'
                                     )
                                 except:
                                     stacktrace = format_exc()
                                     logger.error(
-                                        f"Failed to convert mod: {original_mod_path}"
+                                        f"转换模组失败: {original_mod_path}"
                                     )
                                     logger.error(stacktrace)
                             else:
                                 logger.warning(
-                                    f"Failed to convert mod! Destination already exists: {renamed_mod_path}"
+                                    f"转换模组失败！目标已存在: {renamed_mod_path}"
                                 )
                     self.refresh_signal.emit()
                     return True
@@ -1086,17 +1086,17 @@ class ModListWidget(QListWidget):
                                 try:
                                     os.rename(original_mod_path, renamed_mod_path)
                                     logger.debug(
-                                        f'Successfully "converted" SteamCMD mod by renaming from {publishedfileid} -> {mod_name}'
+                                        f"成功将SteamCMD模组通过重命名从 {publishedfileid} 更改为 {mod_name}"
                                     )
                                 except:
                                     stacktrace = format_exc()
                                     logger.error(
-                                        f"Failed to convert mod: {original_mod_path}"
+                                        f"转换模组失败: {original_mod_path}"
                                     )
                                     logger.error(stacktrace)
                             else:
                                 logger.warning(
-                                    f"Failed to convert mod! Destination already exists: {renamed_mod_path}"
+                                    f"转换模组失败！目标已存在: {renamed_mod_path}"
                                 )
                     self.refresh_signal.emit()
                     return True
@@ -1107,14 +1107,14 @@ class ModListWidget(QListWidget):
                     logger.debug(steamcmd_publishedfileid_to_name)
                     # Prompt user
                     answer = show_dialogue_conditional(
-                        title="Are you sure?",
-                        text=f"You have selected {len(steamcmd_publishedfileid_to_name.keys())} mods for deletion + re-download.",
-                        information="\nThis operation will recursively delete all mod files, except for .dds textures found, "
-                        + "and attempt to re-download the mods via SteamCMD. Do you want to proceed?",
+                        title="是否确定？",
+                        text=f"您已选择 {len(steamcmd_publishedfileid_to_name.keys())} 个模组进行删除并重新下载。",
+                        information="\n这个操作将会递归地删除所有模组文件（除了找到的 .dds 纹理文件），"
+                        + "并尝试通过 SteamCMD 重新下载这些模组。您是否希望继续执行此操作？",
                     )
                     if answer == "&Yes":
                         logger.debug(
-                            f"Deleting + redownloading {len(steamcmd_publishedfileid_to_name.keys())} SteamCMD mod(s)"
+                            f"删除并重新下载 {len(steamcmd_publishedfileid_to_name.keys())} 个 SteamCMD 模组"
                         )
                         for path in steamcmd_mod_paths:
                             delete_files_except_extension(
@@ -1154,7 +1154,7 @@ class ModListWidget(QListWidget):
                             try:
                                 if os.path.exists(renamed_mod_path):
                                     logger.warning(
-                                        "Destination exists. Removing all files except for .dds textures first..."
+                                        "目标位置已存在。首先移除所有文件，除了.dds纹理文件..."
                                     )
                                     delete_files_except_extension(
                                         directory=renamed_mod_path, extension=".dds"
@@ -1171,11 +1171,11 @@ class ModListWidget(QListWidget):
                                             dst_file = os.path.join(dest_dir, file)
                                             copy2(src_file, dst_file)
                                 logger.debug(
-                                    f'Successfully "converted" Steam mod by copying {publishedfileid_from_folder_name} -> {mod_name} and migrating mod to local mods directory'
+                                    f"已成功转换Steam模组，通过将 {publishedfileid_from_folder_name} 复制并重命名为 {mod_name} ，并将模组迁移到本地模组目录中。"
                                 )
                             except:
                                 stacktrace = format_exc()
-                                logger.error(f"Failed to convert mod: {path}")
+                                logger.error(f"转换模组失败: {path}")
                                 logger.error(stacktrace)
                     self.refresh_signal.emit()
                     return True
@@ -1185,13 +1185,13 @@ class ModListWidget(QListWidget):
                     publishedfileids = steam_publishedfileid_to_name.keys()
                     # Prompt user
                     answer = show_dialogue_conditional(
-                        title="Are you sure?",
-                        text=f"You have selected {len(publishedfileids)} mods for unsubscribe + re-subscribe.",
-                        information="\nThis operation will potentially delete .dds textures leftover. Steam is unreliable for this. Do you want to proceed?",
+                        title="是否确定？",
+                        text=f"您已选择 {len(publishedfileids)} 个模组进行取消订阅并重新订阅。",
+                        information="\n此操作可能会删除剩余的.dds纹理文件。Steam在处理这方面时可能不太可靠。您确定要继续吗？",
                     )
                     if answer == "&Yes":
                         logger.debug(
-                            f"Unsubscribing + re-subscribing to {len(publishedfileids)} mod(s)"
+                            f"正在取消订阅并重新订阅 {len(publishedfileids)} 个模组"
                         )
                         for path in steam_mod_paths:
                             delete_files_except_extension(
@@ -1199,7 +1199,7 @@ class ModListWidget(QListWidget):
                             )
                         self.steamworks_subscription_signal.emit(
                             [
-                                "resubscribe",
+                                "重新订阅",
                                 [eval(str_pfid) for str_pfid in publishedfileids],
                             ]
                         )
@@ -1211,17 +1211,17 @@ class ModListWidget(QListWidget):
                     publishedfileids = steam_publishedfileid_to_name.keys()
                     # Prompt user
                     answer = show_dialogue_conditional(
-                        title="Are you sure?",
-                        text=f"You have selected {len(publishedfileids)} mods for unsubscribe.",
-                        information="\nDo you want to proceed?",
+                        title="是否确定？",
+                        text=f"您已选择 {len(publishedfileids)} 个模组进行取消订阅。",
+                        information="\n是否要继续？",
                     )
                     if answer == "&Yes":
                         logger.debug(
-                            f"Unsubscribing from {len(publishedfileids)} mod(s)"
+                            f"正在取消订阅 {len(publishedfileids)} 个模组"
                         )
                         self.steamworks_subscription_signal.emit(
                             [
-                                "unsubscribe",
+                                "取消订阅",
                                 [eval(str_pfid) for str_pfid in publishedfileids],
                             ]
                         )
@@ -1230,8 +1230,8 @@ class ModListWidget(QListWidget):
                     action == add_to_steamdb_blacklist_action
                 ):  # ACTION: Blacklist workshop mod in SteamDB
                     args, ok = show_dialogue_input(
-                        title="Add comment",
-                        label="Enter a comment providing your reasoning for wanting to blacklist this mod: "
+                        title="添加评论",
+                        label="输入一个评论，说明您希望将此模组加入黑名单的原因: "
                         + f'{self.metadata_manager.external_steam_metadata.get(steamdb_add_blacklist, {}).get("steamName", steamdb_add_blacklist)}',
                     )
                     if ok:
@@ -1240,19 +1240,19 @@ class ModListWidget(QListWidget):
                         )
                     else:
                         show_warning(
-                            title="Unable to add to blacklist",
-                            text="Comment was not provided or entry was cancelled. Comments are REQUIRED for this action!",
+                            title="无法添加到黑名单",
+                            text="未提供评论或操作已取消。此操作需要评论！",
                         )
                     return True
                 elif (
                     action == remove_from_steamdb_blacklist_action
                 ):  # ACTION: Blacklist workshop mod in SteamDB
                     answer = show_dialogue_conditional(
-                        title="Are you sure?",
-                        text="This will remove the selected mod, "
+                        title="是否确定？",
+                        text="这将移除所选的模组， "
                         + f'{self.metadata_manager.external_steam_metadata.get(steamdb_remove_blacklist, {}).get("steamName", steamdb_remove_blacklist)}, '
-                        + "from your configured Steam DB blacklist."
-                        + "\nDo you want to proceed?",
+                        + "从您配置的Steam数据库黑名单中。"
+                        + "\n是否要继续？",
                     )
                     if answer == "&Yes":
                         self.steamdb_blacklist_signal.emit(
@@ -1261,10 +1261,10 @@ class ModListWidget(QListWidget):
                     return True
                 elif action == delete_mod_action:  # ACTION: Delete mods action
                     answer = show_dialogue_conditional(
-                        title="Are you sure?",
-                        text=f"You have selected {len(selected_items)} mods for deletion.",
-                        information="\nThis operation delete a mod's directory from the filesystem."
-                        + "\nDo you want to proceed?",
+                        title="是否确定？",
+                        text=f"您已选择 {len(selected_items)} 个模组进行删除。",
+                        information="\n此操作将从文件系统中删除模组的目录。"
+                        + "\n是否要继续？",
                     )
                     if answer == "&Yes":
                         for source_item in selected_items:
@@ -1287,35 +1287,35 @@ class ModListWidget(QListWidget):
                                         )
                                     except FileNotFoundError:
                                         logger.debug(
-                                            f"Unable to delete mod. Path does not exist: {mod_metadata['path']}"
+                                            f"无法删除模组。路径不存在: {mod_metadata['路径']}"
                                         )
                                         pass
                                     except OSError as e:
-                                        if os.name == "nt":
+                                        if os.name == 'nt':
                                             error_code = e.winerror
                                         else:
                                             error_code = e.errno
                                         if e.errno == ENOTEMPTY:
-                                            warning_text = "Mod directory was not empty. Please close all programs accessing files or subfolders in the directory (including your file manager) and try again."
+                                            warning_text = "模组目录不为空。请关闭所有正在访问该目录中的文件或子文件夹的程序（包括您的文件管理器），并再次尝试。"
                                         else:
-                                            warning_text = "An OSError occurred while deleting mod."
-
+                                            warning_text = "在删除模组时发生了OSError（操作系统错误）。"
+                                        
                                         logger.warning(
-                                            f"Unable to delete mod located at the path: {mod_metadata['path']}"
+                                            f"无法删除位于指定路径的模组: {mod_metadata['路径']}"
                                         )
                                         show_warning(
-                                            title="Unable to delete mod",
+                                            title="无法删除模组",
                                             text=warning_text,
-                                            information=f"{e.strerror} occurred at {e.filename} with error code {error_code}.",
+                                            information=f"在 {e.strerror} 处发生了 {e.filename} ，错误码为 {error_code}.",
                                         )
                                         continue
                     return True
                 elif action == delete_mod_keep_dds_action:  # ACTION: Delete mods action
                     answer = show_dialogue_conditional(
-                        title="Are you sure?",
-                        text=f"You have selected {len(selected_items)} mods for deletion.",
-                        information="\nThis operation will recursively delete all mod files, except for .dds textures found."
-                        + "\nDo you want to proceed?",
+                        title="是否确定？",
+                        text=f"您已选择 {len(selected_items)} 个模组进行删除。",
+                        information="\n此操作将递归删除所有模组文件，但会保留.dds纹理文件。"
+                        + "\n是否要继续？",
                     )
                     if answer == "&Yes":
                         for source_item in selected_items:
@@ -1339,10 +1339,10 @@ class ModListWidget(QListWidget):
                     return True
                 elif action == delete_mod_dds_only_action:  # ACTION: Delete mods action
                     answer = show_dialogue_conditional(
-                        title="Are you sure?",
-                        text=f"You have selected {len(selected_items)} mods to Delete optimized textures (.dds files only)",
+                        title="是否确定？",
+                        text=f"您已选择 {len(selected_items)} 个模组以删除优化后的纹理文件（仅.dds文件）。",
                         information="\nThis operation will only delete optimized textures (.dds files only) from mod files."
-                        + "\nDo you want to proceed?",
+                        + "\n是否要继续？",
                     )
                     if answer == "&Yes":
                         for source_item in selected_items:
@@ -1381,7 +1381,7 @@ class ModListWidget(QListWidget):
                         # Open folder action
                         elif action == open_folder_action:  # ACTION: Open folder
                             if os.path.exists(mod_path):  # If the path actually exists
-                                logger.info(f"Opening folder: {mod_path}")
+                                logger.info(f"打开文件夹: {mod_path}")
                                 platform_specific_open(mod_path)
                         # Open url action
                         elif (
@@ -1407,7 +1407,7 @@ class ModListWidget(QListWidget):
                                         "url", mod_metadata.get("steam_url")
                                     )
                                 if url:
-                                    logger.info(f"Opening url in browser: {url}")
+                                    logger.info(f"在浏览器中打开URL: {url}")
                                     open_url_browser(url)
                         # Open Steam URI with Steam action
                         elif (
@@ -1508,7 +1508,7 @@ class ModListWidget(QListWidget):
     def create_widget_for_item(self, item: QListWidgetItem) -> None:
         data = item.data(Qt.ItemDataRole.UserRole)
         if data is None:
-            logger.debug("Attempted to create widget for item with None data")
+            logger.debug("试为数据为None的项创建小部件")
             return
         errors_warnings = data["errors_warnings"]
         filtered = data["filtered"]
@@ -1590,7 +1590,7 @@ class ModListWidget(QListWidget):
             if item:
                 data = item.data(Qt.ItemDataRole.UserRole)
                 if data is None:
-                    logger.debug(f"Attempted to insert item with None data. Idx: {idx}")
+                    logger.debug(f"尝试插入数据为None的项。索引Idx: {idx}")
                     continue
                 uuid = data["uuid"]
                 self.uuids.insert(idx, uuid)
@@ -1599,7 +1599,7 @@ class ModListWidget(QListWidget):
         if len(self.uuids) == self.count():
             # Update list with the number of items
             logger.debug(
-                f"Emitting {self.list_type} list update signal after rows inserted [{self.count()}]"
+                f"在插入行后，发出 {self.list_type} 列表更新信号，当前行数 [{self.count()}]"
             )
             self.list_update_signal.emit(str(self.count()))
 
@@ -1624,7 +1624,7 @@ class ModListWidget(QListWidget):
         if len(self.uuids) == self.count():
             # Update list with the number of items
             logger.debug(
-                f"Emitting {self.list_type} list update signal after rows removed [{self.count()}]"
+                f"在删除行后，发出 {self.list_type} 列表更新信号，当前剩余行数 [{self.count()}]"
             )
             self.list_update_signal.emit(str(self.count()))
 
@@ -1660,7 +1660,7 @@ class ModListWidget(QListWidget):
             mod_info = set_to_list(mod_info)
             mod_info_pretty = json.dumps(mod_info, indent=4)
             logger.debug(
-                f"USER ACTION: mod was clicked: [{data['uuid']}] {mod_info_pretty}"
+                f"USER ACTION: 模组已被点击: [{data['uuid']}] {mod_info_pretty}"
             )
 
     def mod_double_clicked(self, item: QListWidgetItem):
@@ -1673,7 +1673,7 @@ class ModListWidget(QListWidget):
     def rebuild_item_widget_from_uuid(self, uuid: str) -> None:
         item_index = self.uuids.index(uuid)
         item = self.item(item_index)
-        logger.debug(f"Rebuilding widget for item {uuid} at index {item_index}")
+        logger.debug(f"正在为位于索引 {uuid} 的项 {item_index} 重新构建小部件")
         # Destroy the item's previous widget immediately. Recreate if the item is visible.
         widget = self.itemWidget(item)
         if widget:
@@ -1777,10 +1777,10 @@ class ModListWidget(QListWidget):
             # Calculate any needed string for errors / warnings
             tool_tip_text = ""
             for error_type, tooltip_header in [
-                ("missing_dependencies", "\nMissing Dependencies:"),
-                ("conflicting_incompatibilities", "\nIncompatibilities:"),
-                ("load_before_violations", "\nShould be Loaded After:"),
-                ("load_after_violations", "\nShould be Loaded Before:"),
+                ("missing_dependencies", "\n缺少依赖项:"),
+                ("conflicting_incompatibilities", "\n不兼容:"),
+                ("load_before_violations", "\n应该加载在之后:"),
+                ("load_after_violations", "\n应该加载在之前:"),
             ]:
                 if mod_errors[error_type]:
                     tool_tip_text += tooltip_header
@@ -1800,7 +1800,7 @@ class ModListWidget(QListWidget):
                 and mod_data["packageid"] not in self.ignore_warning_list
             ):
                 # Add tool tip to indicate mod and game version mismatch
-                tool_tip_text += "\nMod and Game Version Mismatch"
+                tool_tip_text += "\n模组和游戏版本不匹配"
             # Add to error summary if any missing dependencies or incompatibilities
             if self.list_type == "Active" and any(
                 [
@@ -1839,7 +1839,7 @@ class ModListWidget(QListWidget):
             # Add tooltip to item data and set the data back to the item
             current_item_data["errors_warnings"] = tool_tip_text
             current_item.setData(Qt.ItemDataRole.UserRole, current_item_data)
-        logger.info(f"Finished recalculating {self.list_type} list errors")
+        logger.info(f"已完成 {self.list_type} 列表错误的重新计算")
         return total_error_text, total_warning_text, num_errors, num_warnings
 
     def _has_replacement(
@@ -1852,7 +1852,7 @@ class ModListWidget(QListWidget):
         for replacement in replacements:
             if replacement in package_ids_set:
                 logger.debug(
-                    f"Missing dependency [{dep}] for [{package_id}] replaced with [{replacement}]"
+                    f"缺少 [{package_id}] 的依赖项  [{dep}] ，已用 [{replacement}] 替换"
                 )
                 return True
         return False
@@ -1882,7 +1882,7 @@ class ModListWidget(QListWidget):
 
         :param mods: dict of mod data
         """
-        logger.info(f"Internally recreating {list_type} mod list")
+        logger.info(f"内部重新创建 {list_type} 模组列表")
         # Disable updates
         self.setUpdatesEnabled(False)
         # Clear list
@@ -1912,7 +1912,7 @@ class ModListWidget(QListWidget):
         self.repaint()
 
     def toggle_warning(self, packageid: str) -> None:
-        logger.debug(f"Toggled warning icon for: {packageid}")
+        logger.debug(f"切换警告图标: {packageid}")
         if packageid not in self.ignore_warning_list:
             self.ignore_warning_list.append(packageid)
         else:
@@ -1938,7 +1938,7 @@ class ModsPanel(QWidget):
         super(ModsPanel, self).__init__()
 
         # Cache MetadataManager instance and initialize panel
-        logger.debug("Initializing ModsPanel")
+        logger.debug("初始化模组面板")
         self.metadata_manager = MetadataManager.instance()
         self.settings_controller = settings_controller
 
@@ -1977,9 +1977,9 @@ class ModsPanel(QWidget):
         )
 
         # ACTIVE mod list widget
-        self.active_mods_label = QLabel("Active [0]")
+        self.active_mods_label = QLabel("启用 [0]")
         self.active_mods_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.active_mods_label.setObjectName("summaryValue")
+        self.active_mods_label.setObjectName("摘要值")
         self.active_mods_list = ModListWidget(
             list_type="Active",
             settings_controller=self.settings_controller,
@@ -2010,7 +2010,7 @@ class ModsPanel(QWidget):
         self.active_mods_search.setClearButtonEnabled(True)
         self.active_mods_search.textChanged.connect(self.on_active_mods_search)
         self.active_mods_search.inputRejected.connect(self.on_active_mods_search_clear)
-        self.active_mods_search.setPlaceholderText("Search by...")
+        self.active_mods_search.setPlaceholderText("搜索依据...")
         self.active_mods_search_clear_button = self.active_mods_search.findChild(
             QToolButton
         )
@@ -2022,7 +2022,7 @@ class ModsPanel(QWidget):
         self.active_mods_search_filter.setObjectName("MainUI")
         self.active_mods_search_filter.setMaximumWidth(125)
         self.active_mods_search_filter.addItems(
-            ["Name", "PackageId", "Author(s)", "PublishedFileId"]
+            ["名称", "模组ID", "作者", "已发布文件ID"]
         )
         # Active mods search layouts
         self.active_mods_search_layout.addWidget(
@@ -2035,18 +2035,18 @@ class ModsPanel(QWidget):
         self.active_mods_search_layout.addWidget(self.active_mods_search_filter, 70)
         # Active mods list Errors/warnings widgets
         self.errors_summary_frame = QFrame()
-        self.errors_summary_frame.setObjectName("errorFrame")
+        self.errors_summary_frame.setObjectName("错误帧")
         self.errors_summary_layout = QHBoxLayout()
         self.errors_summary_layout.setContentsMargins(0, 0, 0, 0)
         self.errors_summary_layout.setSpacing(2)
         self.warnings_icon = QLabel()
         self.warnings_icon.setPixmap(ModListIcons.warning_icon().pixmap(QSize(20, 20)))
-        self.warnings_text = QLabel("0 warnings(s)")
-        self.warnings_text.setObjectName("summaryValue")
+        self.warnings_text = QLabel("0 警告(s)")
+        self.warnings_text.setObjectName("摘要值")
         self.errors_icon = QLabel()
         self.errors_icon.setPixmap(ModListIcons.error_icon().pixmap(QSize(20, 20)))
-        self.errors_text = QLabel("0 error(s)")
-        self.errors_text.setObjectName("summaryValue")
+        self.errors_text = QLabel("0 错误(s)")
+        self.errors_text.setObjectName("摘要值")
         self.warnings_layout = QHBoxLayout()
         self.warnings_layout.addWidget(self.warnings_icon, 1)
         self.warnings_layout.addWidget(self.warnings_text, 99)
@@ -2064,11 +2064,11 @@ class ModsPanel(QWidget):
         self.active_panel.addWidget(self.errors_summary_frame, 1)
 
         # INACTIVE mod list widgets
-        self.inactive_mods_label = QLabel("Inactive [0]")
+        self.inactive_mods_label = QLabel("非启用 [0]")
         self.inactive_mods_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.inactive_mods_label.setObjectName("summaryValue")
+        self.inactive_mods_label.setObjectName("摘要值")
         self.inactive_mods_list = ModListWidget(
-            list_type="Inactive",
+            list_type="非启用",
             settings_controller=self.settings_controller,
         )
         # Inactive mods search widgets
@@ -2101,7 +2101,7 @@ class ModsPanel(QWidget):
         self.inactive_mods_search.inputRejected.connect(
             self.on_inactive_mods_search_clear
         )
-        self.inactive_mods_search.setPlaceholderText("Search by...")
+        self.inactive_mods_search.setPlaceholderText("搜索依据...")
         self.inactive_mods_search_clear_button = self.inactive_mods_search.findChild(
             QToolButton
         )
@@ -2110,10 +2110,10 @@ class ModsPanel(QWidget):
             self.on_inactive_mods_search_clear
         )
         self.inactive_mods_search_filter = QComboBox()
-        self.inactive_mods_search_filter.setObjectName("MainUI")
+        self.inactive_mods_search_filter.setObjectName("主用户界面")
         self.inactive_mods_search_filter.setMaximumWidth(140)
         self.inactive_mods_search_filter.addItems(
-            ["Name", "PackageId", "Author(s)", "PublishedFileId"]
+            ["名称", "模组ID", "作者", "已发布文件ID"]
         )
         # Inactive mods search layouts
         self.inactive_mods_search_layout.addWidget(
@@ -2149,12 +2149,12 @@ class ModsPanel(QWidget):
             partial(self.recalculate_list_errors_warnings, list_type="Inactive")
         )
 
-        logger.debug("Finished ModsPanel initialization")
+        logger.debug("已完成模组面板初始化")
 
     def mod_list_updated(self, count: str, list_type: str) -> None:
         # If count is 'drop', it indicates that the update was just a drag and drop within the list
         if count != "drop":
-            logger.info(f"{list_type} mod count changed to: {count}")
+            logger.info(f"{list_type} 模组数已更改为: {count}")
             self.update_count(list_type=list_type)
         # Signal save button animation
         self.save_btn_animation_signal.emit()
@@ -2223,8 +2223,8 @@ class ModsPanel(QWidget):
             # Calculate total errors and warnings and set the text and tool tip for the summary
             if total_error_text or total_warning_text or num_errors or num_warnings:
                 self.errors_summary_frame.setHidden(False)
-                self.warnings_text.setText(f"{num_warnings} warnings(s)")
-                self.errors_text.setText(f"{num_errors} errors(s)")
+                self.warnings_text.setText(f"{num_warnings} 警告(s)")
+                self.errors_text.setText(f"{num_errors} 错误(s)")
                 if total_error_text:
                     self.errors_icon.setToolTip(total_error_text.lstrip())
                 else:
@@ -2235,8 +2235,8 @@ class ModsPanel(QWidget):
                     self.warnings_icon.setToolTip("")
             else:  # Hide the summary if there are no errors or warnings
                 self.errors_summary_frame.setHidden(True)
-                self.warnings_text.setText("0 warnings(s)")
-                self.errors_text.setText("0 errors(s)")
+                self.warnings_text.setText("0 警告(s)")
+                self.errors_text.setText("0 错误(s)")
                 self.errors_icon.setToolTip("")
                 self.warnings_icon.setToolTip("")
             # First time, and when Refreshing, the slot will evaluate false and do nothing.
@@ -2277,13 +2277,13 @@ class ModsPanel(QWidget):
         # Evaluate the search filter state for the list
         search_filter = None
         if _filter.currentText() == "Name":
-            search_filter = "name"
+            search_filter = "名称"
         elif _filter.currentText() == "PackageId":
-            search_filter = "packageid"
+            search_filter = "模组ID"
         elif _filter.currentText() == "Author(s)":
-            search_filter = "authors"
+            search_filter = "作者"
         elif _filter.currentText() == "PublishedFileId":
-            search_filter = "publishedfileid"
+            search_filter = "已发布文件ID"
         # Filter the list using any search and filter state
         for uuid in uuids:
             item = (
