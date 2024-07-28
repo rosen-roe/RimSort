@@ -4,7 +4,7 @@ from os import getcwd
 from pathlib import Path
 from threading import Thread
 from time import sleep, time
-from typing import Union
+from typing import Any, Union
 
 from loguru import logger
 
@@ -14,7 +14,8 @@ from loguru import logger
 if "__compiled__" not in globals():
     sys.path.append(str((Path(getcwd()) / "submodules" / "SteamworksPy")))
 
-from steamworks import STEAMWORKS
+from steamworks import STEAMWORKS  # type: ignore
+
 from app.utils.generic import launch_game_process
 
 
@@ -31,7 +32,12 @@ class SteamworksInterface:
     Thanks to Paladin for the example
     """
 
-    def __init__(self, callbacks: bool, callbacks_total=None, _libs=None):
+    def __init__(
+        self,
+        callbacks: bool,
+        callbacks_total: int | None = None,
+        _libs: str | None = None,
+    ) -> None:
         logger.info("Steamworks接口初始化...")
         self.callbacks = callbacks
         self.callbacks_count = 0
@@ -47,7 +53,7 @@ class SteamworksInterface:
             else:
                 self.multiple_queries = False
         # Used for GetAppDependencies data
-        self.get_app_deps_query_result = {}
+        self.get_app_deps_query_result: dict[int, Any] = {}
         self.steam_not_running = False  # Skip action if True. Log occurrences.
         self.steamworks = STEAMWORKS(_libs=_libs)
         try:
@@ -67,7 +73,7 @@ class SteamworksInterface:
                 self.steamworks_thread = self._daemon()
                 self.steamworks_thread.start()
 
-    def _callbacks(self):
+    def _callbacks(self) -> None:
         logger.debug("Starting _callbacks")
         while (
             not self.steamworks.loaded()
@@ -83,7 +89,8 @@ class SteamworksInterface:
                 f"{self.callbacks_count} 收到回调。结束线程..."
             )
 
-    def _cb_app_dependencies_result_callback(self, *args, **kwargs) -> None:
+    # TODO: Rework this for proper static type checking
+    def _cb_app_dependencies_result_callback(self, *args: Any, **kwargs: Any) -> None:
         """
         Executes upon Steamworks API callback response
         """
@@ -107,7 +114,7 @@ class SteamworksInterface:
             # Set flag so that _callbacks cease
             self.end_callbacks = True
 
-    def _cb_subscription_action(self, *args, **kwargs) -> None:
+    def _cb_subscription_action(self, *args: Any, **kwargs: Any) -> None:
         """
         Executes upon Steamworks API callback response
         """
@@ -156,12 +163,17 @@ class SteamworksInterface:
 
 
 class SteamworksAppDependenciesQuery:
-    def __init__(self, pfid_or_pfids: Union[int, list], interval=1, _libs=None):
+    def __init__(
+        self,
+        pfid_or_pfids: Union[int, list[int]],
+        interval: int = 1,
+        _libs: str | None = None,
+    ) -> None:
         self._libs = _libs
         self.interval = interval
         self.pfid_or_pfids = pfid_or_pfids
 
-    def run(self) -> dict:
+    def run(self) -> None | dict[int, Any]:
         """
         Query PublishedFileIDs for AppID dependency data
         :param pfid_or_pfids: is an int that corresponds with a subscribed Steam mod's PublishedFileId
@@ -203,11 +215,14 @@ class SteamworksAppDependenciesQuery:
                 return steamworks_interface.get_app_deps_query_result
         else:
             steamworks_interface.steamworks.unload()
-            steamworks_interface = None
+
+        return None
 
 
 class SteamworksGameLaunch(Process):
-    def __init__(self, game_install_path: str, args: list, _libs=None) -> None:
+    def __init__(
+        self, game_install_path: str, args: list[str], _libs: str | None = None
+    ) -> None:
         Process.__init__(self)
         self._libs = _libs
         self.game_install_path = game_install_path
@@ -223,23 +238,23 @@ class SteamworksGameLaunch(Process):
         logger.info("Creating SteamworksInterface and launching game executable")
         # Try to initialize the SteamWorks API, but allow game to launch if Steam not found
         steamworks_interface = SteamworksInterface(callbacks=False, _libs=self._libs)
-        if steamworks_interface.steam_not_running:  # Delete if true
-            steamworks_interface = None
+
         # Launch the game
         launch_game_process(
             game_install_path=Path(self.game_install_path), args=self.args
         )
         # If we had an API initialization, try to unload it
-        if steamworks_interface and steamworks_interface.steamworks:
+        if (
+            not steamworks_interface.steam_not_running
+            and steamworks_interface.steamworks
+        ):
             # Unload Steamworks API
             steamworks_interface.steamworks.unload()
-        else:
-            steamworks_interface = None
 
 
 class SteamworksSubscriptionHandler:
     def __init__(
-        self, action: str, pfid_or_pfids: Union[int, list], interval=1, _libs=None
+        self, action: str, pfid_or_pfids: Union[int, list[int]], interval:int=1, _libs: str | None=None
     ):
         # Optionally set _libs path for Steamworks
         self._libs = _libs
@@ -329,7 +344,6 @@ class SteamworksSubscriptionHandler:
                 steamworks_interface.steamworks.unload()
         else:
             steamworks_interface.steamworks.unload()
-            steamworks_interface = None
 
 
 if __name__ == "__main__":

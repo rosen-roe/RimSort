@@ -45,12 +45,10 @@ from PySide6.QtCore import (
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel
 from requests import get as requests_get
 
-import app.models.dialogue as dialogue
-import app.sort.alphabetical_sort as alpha_sort
-import app.sort.dependencies as deps_sort
-import app.sort.topo_sort as topo_sort
 import app.utils.constants as app_constants
 import app.utils.metadata as metadata
+import app.views.dialogue as dialogue
+from app.controllers.sort_controller import Sorter
 from app.models.animations import LoadingAnimation
 from app.utils.app_info import AppInfo
 from app.utils.event_bus import EventBus
@@ -107,7 +105,7 @@ class MainContent(QObject):
         return cls._instance
 
     def __init__(
-        self, settings_controller: SettingsController, version_string: str
+        self, settings_controller: SettingsController
     ) -> None:
         """
         Initialize the main content panel.
@@ -119,7 +117,6 @@ class MainContent(QObject):
             logger.debug("初始化主要内容")
 
             self.settings_controller = settings_controller
-            self.version_string = version_string
 
             EventBus().settings_have_changed.connect(self._on_settings_have_changed)
             EventBus().do_check_for_application_update.connect(
@@ -1501,7 +1498,7 @@ class MainContent(QObject):
         logger.info(f"已搜集{len(active_mods)}个启用模组以供导出")
         # Build our report
         active_mods_clipboard_report = (
-            f"由 RimSort 创建，版本{self.version_string}"
+            f"由 RimSort 创建，版本{AppInfo().app_version}"
             + f"\n创建此列表的 RimWorld 游戏版本: {self.metadata_manager.game_version}"
             + f"\n启用模组的总数: {len(active_mods)}\n"
         )
@@ -1591,7 +1588,7 @@ class MainContent(QObject):
         # Build our report
         active_mods_rentry_report = (
             "# RimWorld 模组列表      ![](https://github.com/RimSort/RimSort/blob/main/docs/rentry_preview.png?raw=true)"
-            + f"\n由 RimSort 创建，版本{self.version_string}"
+            + f"\n由 RimSort 创建，版本{AppInfo().app_version}"
             + f"\n创建此列表的 RimWorld 游戏版本: `{self.metadata_manager.game_version}`"
             + "\n!!! 信息：本地模组以黄色标签标记，括号内显示其模组ID"
             + f"\n\n\n\n!!! 注意模组列表的的启用数量: `{len(active_mods)}`\n"
@@ -2647,7 +2644,7 @@ class MainContent(QObject):
             open_url_browser("https://git-scm.com/downloads")
 
     def _do_open_rule_editor(
-        self, compact: bool, initial_mode: str, packageid: Any | None = None
+        self, compact: bool, initial_mode: str, packageid: str | None = None
     ) -> None:
         self.rule_editor = RuleEditor(
             # Initialization options

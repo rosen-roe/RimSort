@@ -70,331 +70,45 @@ class Settings(QObject):
         self._external_community_rules_repo = (
             "https://github.com/RimSort/Community-Rules-Database"
         )
-        self._external_community_rules_metadata_source = "None"
-        self._db_builder_include = "all_mods"
-        self._database_expiry = 604800
-        self._build_steam_database_dlc_data = True
-        self._build_steam_database_update_toggle = False
-        self._watchdog_toggle = True
-        self._mod_type_filter_toggle = True
-        self._duplicate_mods_warning = False
-        self._steam_mods_update_check = False
-        self._try_download_missing_mods = False
-        self._steamcmd_validate_downloads = True
-        self._todds_preset = "optimized"
-        self._todds_active_mods_target = True
-        self._todds_dry_run = False
-        self._todds_overwrite = False
-        self._current_instance = "Default"
-        self._instances = {"Default": Instance()}
-        self._github_username = ""
-        self._github_token = ""
-        self._steam_apikey = ""
+        self.database_expiry: int = 604800  # 7 days
 
-    @property
-    def debug_logging_enabled(self) -> bool:
-        return self._debug_logging_enabled
+        # Sorting
+        self.sorting_algorithm: SortMethod = SortMethod.TOPOLOGICAL
 
-    @debug_logging_enabled.setter
-    def debug_logging_enabled(self, value: bool) -> None:
-        if value == self._debug_logging_enabled:
-            return
-        self._debug_logging_enabled = value
-        EventBus().settings_have_changed.emit()
+        # DB Builder
+        self.db_builder_include: str = "all_mods"
+        self.build_steam_database_dlc_data: bool = True
+        self.build_steam_database_update_toggle: bool = False
+        self.steam_apikey: str = ""
 
-    @property
-    def check_for_update_startup(self) -> bool:
-        return self._check_for_update_startup
+        # SteamCMD
+        self.steamcmd_validate_downloads: bool = True
 
-    @check_for_update_startup.setter
-    def check_for_update_startup(self, value: bool) -> None:
-        if value == self._check_for_update_startup:
-            return
-        self._check_for_update_startup = value
-        EventBus().settings_have_changed.emit()
+        # todds
+        self.todds_preset: str = "optimized"
+        self.todds_active_mods_target: bool = True
+        self.todds_dry_run: bool = False
+        self.todds_overwrite: bool = False
 
-    @property
-    def show_folder_rows(self) -> bool:
-        return self._show_folder_rows
+        # Advanced
+        self.debug_logging_enabled: bool = False
+        self.watchdog_toggle: bool = True
+        self.mod_type_filter_toggle: bool = True
+        self.duplicate_mods_warning: bool = False
+        self.steam_mods_update_check: bool = False
+        self.try_download_missing_mods: bool = False
 
-    @show_folder_rows.setter
-    def show_folder_rows(self, value: bool) -> None:
-        if value == self._show_folder_rows:
-            return
-        self._show_folder_rows = value
-        EventBus().settings_have_changed.emit()
+        self.github_username: str = ""
+        self.github_token: str = ""
 
-    @property
-    def sorting_algorithm(self) -> str:
-        return self._sorting_algorithm
+        # Instances
+        self.current_instance: str = "Default"
+        self.instances: dict[str, Instance] = {"Default": Instance()}
 
-    @sorting_algorithm.setter
-    def sorting_algorithm(self, value: str) -> None:
-        if value == self._sorting_algorithm:
-            return
-        self._sorting_algorithm = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def external_steam_metadata_file_path(self) -> str:
-        return self._external_steam_metadata_file_path
-
-    @external_steam_metadata_file_path.setter
-    def external_steam_metadata_file_path(self, value: str) -> None:
-        if value == self._external_steam_metadata_file_path:
-            return
-        self._external_steam_metadata_file_path = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def external_steam_metadata_repo(self) -> str:
-        return self._external_steam_metadata_repo
-
-    @external_steam_metadata_repo.setter
-    def external_steam_metadata_repo(self, value: str) -> None:
-        if value == self._external_steam_metadata_repo:
-            return
-        self._external_steam_metadata_repo = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def external_steam_metadata_source(self) -> str:
-        return self._external_steam_metadata_source
-
-    @external_steam_metadata_source.setter
-    def external_steam_metadata_source(self, value: str) -> None:
-        if value == self._external_steam_metadata_source:
-            return
-        self._external_steam_metadata_source = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def external_community_rules_file_path(self) -> str:
-        return self._external_community_rules_file_path
-
-    @external_community_rules_file_path.setter
-    def external_community_rules_file_path(self, value: str) -> None:
-        if value == self._external_community_rules_file_path:
-            return
-        self._external_community_rules_file_path = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def external_community_rules_repo(self) -> str:
-        return self._external_community_rules_repo
-
-    @external_community_rules_repo.setter
-    def external_community_rules_repo(self, value: str) -> None:
-        if value == self._external_community_rules_repo:
-            return
-        self._external_community_rules_repo = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def external_community_rules_metadata_source(self) -> str:
-        return self._external_community_rules_metadata_source
-
-    @external_community_rules_metadata_source.setter
-    def external_community_rules_metadata_source(self, value: str) -> None:
-        if value == self._external_community_rules_metadata_source:
-            return
-        self._external_community_rules_metadata_source = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def db_builder_include(self) -> str:
-        return self._db_builder_include
-
-    @db_builder_include.setter
-    def db_builder_include(self, value: str) -> None:
-        if value == self._db_builder_include:
-            return
-        self._db_builder_include = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def database_expiry(self) -> int:
-        return self._database_expiry
-
-    @database_expiry.setter
-    def database_expiry(self, value: int) -> None:
-        if value == self._database_expiry:
-            return
-        self._database_expiry = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def build_steam_database_dlc_data(self) -> bool:
-        return self._build_steam_database_dlc_data
-
-    @build_steam_database_dlc_data.setter
-    def build_steam_database_dlc_data(self, value: bool) -> None:
-        if value == self._build_steam_database_dlc_data:
-            return
-        self._build_steam_database_dlc_data = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def build_steam_database_update_toggle(self) -> bool:
-        return self._build_steam_database_update_toggle
-
-    @build_steam_database_update_toggle.setter
-    def build_steam_database_update_toggle(self, value: bool) -> None:
-        if value == self._build_steam_database_update_toggle:
-            return
-        self._build_steam_database_update_toggle = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def watchdog_toggle(self) -> bool:
-        return self._watchdog_toggle
-
-    @watchdog_toggle.setter
-    def watchdog_toggle(self, value: bool) -> None:
-        if value == self._watchdog_toggle:
-            return
-        self._watchdog_toggle = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def mod_type_filter_toggle(self) -> bool:
-        return self._mod_type_filter_toggle
-
-    @mod_type_filter_toggle.setter
-    def mod_type_filter_toggle(self, value: bool) -> None:
-        if value == self._mod_type_filter_toggle:
-            return
-        self._mod_type_filter_toggle = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def duplicate_mods_warning(self) -> bool:
-        return self._duplicate_mods_warning
-
-    @duplicate_mods_warning.setter
-    def duplicate_mods_warning(self, value: bool) -> None:
-        if value == self._duplicate_mods_warning:
-            return
-        self._duplicate_mods_warning = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def steam_mods_update_check(self) -> bool:
-        return self._steam_mods_update_check
-
-    @steam_mods_update_check.setter
-    def steam_mods_update_check(self, value: bool) -> None:
-        if value == self._steam_mods_update_check:
-            return
-        self._steam_mods_update_check = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def try_download_missing_mods(self) -> bool:
-        return self._try_download_missing_mods
-
-    @try_download_missing_mods.setter
-    def try_download_missing_mods(self, value: bool) -> None:
-        if value == self._try_download_missing_mods:
-            return
-        self._try_download_missing_mods = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def steamcmd_validate_downloads(self) -> bool:
-        return self._steamcmd_validate_downloads
-
-    @steamcmd_validate_downloads.setter
-    def steamcmd_validate_downloads(self, value: bool) -> None:
-        if value == self._steamcmd_validate_downloads:
-            return
-        self._steamcmd_validate_downloads = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def todds_preset(self) -> str:
-        return self._todds_preset
-
-    @todds_preset.setter
-    def todds_preset(self, value: str) -> None:
-        if value == self._todds_preset:
-            return
-        self._todds_preset = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def todds_active_mods_target(self) -> bool:
-        return self._todds_active_mods_target
-
-    @todds_active_mods_target.setter
-    def todds_active_mods_target(self, value: bool) -> None:
-        if value == self._todds_active_mods_target:
-            return
-        self._todds_active_mods_target = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def todds_dry_run(self) -> bool:
-        return self._todds_dry_run
-
-    @todds_dry_run.setter
-    def todds_dry_run(self, value: bool) -> None:
-        if value == self._todds_dry_run:
-            return
-        self._todds_dry_run = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def todds_overwrite(self) -> bool:
-        return self._todds_overwrite
-
-    @todds_overwrite.setter
-    def todds_overwrite(self, value: bool) -> None:
-        if value == self._todds_overwrite:
-            return
-        self._todds_overwrite = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def current_instance(self) -> str:
-        return self._current_instance
-
-    @current_instance.setter
-    def current_instance(self, value: str) -> None:
-        if value == self._current_instance:
-            return
-        self._current_instance = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def instances(self) -> dict[str, Instance]:
-        return self._instances
-
-    @instances.setter
-    def instances(self, value: dict[str, Instance]) -> None:
-        if value == self._instances:
-            return
-        self._instances = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def github_username(self) -> str:
-        return self._github_username
-
-    @github_username.setter
-    def github_username(self, value: str) -> None:
-        if value == self._github_username:
-            return
-        self._github_username = value
-        EventBus().settings_have_changed.emit()
-
-    @property
-    def github_token(self) -> str:
-        return self._github_token
-
-    @github_token.setter
-    def github_token(self, value: str) -> None:
-        if value == self._github_token:
+    def __setattr__(self, key: str, value: Any) -> None:
+        # If private attribute, set it normally
+        if key.startswith("_"):
+            super().__setattr__(key, value)
             return
         self._github_token = value
         EventBus().settings_have_changed.emit()

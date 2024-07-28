@@ -76,9 +76,6 @@ class MainWindowController(QObject):
         logger.debug(
             "启用模组列表已更新。管理保存按钮动画状态。"
         )
-        active_mods_uuids = (
-            self.main_window.main_content_panel.mods_panel.active_mods_list.uuids
-        )
         if (
             # Compare current active list with last save to see if the list has changed
             self.main_window.main_content_panel.mods_panel.active_mods_list.uuids
@@ -90,16 +87,7 @@ class MainWindowController(QObject):
                     500
                 )  # Blink every 500 milliseconds
         else:
-            if self.main_window.save_button_flashing_animation.isActive():
-                logger.debug("停止保存按钮动画")
-                self.main_window.save_button_flashing_animation.stop()
-                self.main_window.save_button.setObjectName("")
-                self.main_window.save_button.style().unpolish(
-                    self.main_window.save_button
-                )
-                self.main_window.save_button.style().polish(
-                    self.main_window.save_button
-                )
+            self.on_save_button_animation_stop()
 
     @Slot()
     def on_save_button_animation_stop(self) -> None:

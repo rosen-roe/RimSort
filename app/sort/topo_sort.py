@@ -5,8 +5,7 @@ from toposort import toposort, CircularDependencyError
 import networkx as nx
 
 from app.utils.metadata import MetadataManager
-
-from app.models.dialogue import show_warning
+from app.views.dialogue import show_warning
 
 
 def do_topo_sort(

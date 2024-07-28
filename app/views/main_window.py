@@ -6,7 +6,6 @@ from traceback import format_exc
 from typing import Any, Optional
 
 from loguru import logger
-from lxml import etree, objectify
 from PySide6.QtCore import QSize, QTimer
 from PySide6.QtGui import QShowEvent
 from PySide6.QtWidgets import (
@@ -27,7 +26,12 @@ from app.controllers.menu_bar_controller import MenuBarController
 from app.controllers.settings_controller import (
     SettingsController,
 )
-from app.models.dialogue import (
+from app.utils.app_info import AppInfo
+from app.utils.event_bus import EventBus
+from app.utils.gui_info import GUIInfo
+from app.utils.steam.steamcmd.wrapper import SteamcmdInterface
+from app.utils.watchdog import WatchdogHandler
+from app.views.dialogue import (
     show_dialogue_conditional,
     show_dialogue_confirmation,
     show_dialogue_file,
@@ -35,11 +39,6 @@ from app.models.dialogue import (
     show_fatal_error,
     show_warning,
 )
-from app.utils.app_info import AppInfo
-from app.utils.event_bus import EventBus
-from app.utils.gui_info import GUIInfo
-from app.utils.steam.steamcmd.wrapper import SteamcmdInterface
-from app.utils.watchdog import WatchdogHandler
 from app.views.main_content_panel import MainContent
 from app.views.menu_bar import MenuBar
 from app.views.status_panel import Status
@@ -68,22 +67,11 @@ class MainWindow(QMainWindow):
         self.steamcmd_wrapper = SteamcmdInterface.instance()
         # Content initialization should only fire on startup. Otherwise, this is handled by Refresh button
 
-        # Read version string from version.xml in root folder
-        self.version_string = "Unknown version"
-        version_file = str(AppInfo().application_folder / "version.xml")
-        if os.path.exists(version_file):
-            root = objectify.parse(version_file, parser=etree.XMLParser(recover=True))
-            self.version_string = root.find("version").text
-
-            # If edge in version_string, append short sha
-            if "edge" in self.version_string.lower():
-                self.version_string += f"+{root.find('commit').text[:7]}"
-
         # Watchdog
         self.watchdog_event_handler: Optional[WatchdogHandler] = None
 
         # Set up the window
-        self.setWindowTitle(f"RimSort {self.version_string}")
+        self.setWindowTitle(f"RimSort {AppInfo().app_version}")
         self.setMinimumSize(QSize(1024, 768))
 
         # Create the window layout
@@ -93,8 +81,7 @@ class MainWindow(QMainWindow):
 
         # Create various panels on the application GUI
         self.main_content_panel = MainContent(
-            settings_controller=self.settings_controller,
-            version_string=self.version_string,
+            settings_controller=self.settings_controller
         )
         self.main_content_panel.disable_enable_widgets_signal.connect(
             self.__disable_enable_widgets
@@ -165,7 +152,6 @@ class MainWindow(QMainWindow):
             self.__restore_instance_from_archive
         )
 
-        self.setWindowTitle(f"RimSort {self.version_string}")
         self.setGeometry(100, 100, 1024, 768)
         logger.debug("完成主窗口初始化")
 
