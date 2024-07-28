@@ -34,7 +34,7 @@ class ModUpdaterPrompt(QWidget):
         self.installEventFilter(self)
 
         self.internal_mod_metadata = internal_mod_metadata
-        self.setObjectName("缺少模组面板")
+        self.setObjectName("missingModsPanel")
         # MOD LABEL
         self.updates_available_label = QLabel(
             "有可用于创意工坊模组的更新！"

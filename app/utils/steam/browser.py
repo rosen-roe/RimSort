@@ -267,7 +267,7 @@ class SteamBrowser(QWidget):
                 item.setToolTip(
                     f"{label.text()}\n--> {self.url_prefix_sharedfiles}{publishedfileid}"
                 )
-            label.setObjectName("列表项标签")
+            label.setObjectName("ListItemLabel")
             # Set the size hint of the item to be the size of the label
             item.setSizeHint(label.sizeHint())
             self.downloader_list.addItem(item)

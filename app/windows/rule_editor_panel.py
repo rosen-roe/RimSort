@@ -78,7 +78,7 @@ class RuleEditor(QWidget):
         self.metadata_manager = MetadataManager.instance()
 
         # STYLESHEET
-        self.setObjectName("规则编辑器")
+        self.setObjectName("RuleEditor")
 
         # LAUNCH OPTIONS
         self.block_comment_prompt = (
@@ -185,7 +185,7 @@ class RuleEditor(QWidget):
         self.external_community_rules_loadBottom_checkbox = QCheckBox(
             "在列表底部强制加载"
         )
-        self.external_community_rules_loadBottom_checkbox.setObjectName("摘要")
+        self.external_community_rules_loadBottom_checkbox.setObjectName("summaryValue")
         # user rules
         self.external_user_rules_loadAfter_label = QLabel("用户规则 (加载于后)")
         self.external_user_rules_loadBefore_label = QLabel("用户规则 (加载于前)")
@@ -226,7 +226,7 @@ class RuleEditor(QWidget):
         self.external_user_rules_loadBottom_checkbox = QCheckBox(
             "在列表底部强制加载"
         )
-        self.external_user_rules_loadBottom_checkbox.setObjectName("摘要")
+        self.external_user_rules_loadBottom_checkbox.setObjectName("summaryValue")
         # EDITOR WIDGETS
         # Create the model and set column headers
         self.editor_model = QStandardItemModel(0, 5)
@@ -609,7 +609,7 @@ class RuleEditor(QWidget):
                 item.setToolTip(title)
         # Set list item label
         label = QLabel(title)
-        label.setObjectName("列表项标签")
+        label.setObjectName("ListItemLabel")
         # Set the size hint of the item to be the size of the label
         item.setSizeHint(label.sizeHint())
         # add to our list

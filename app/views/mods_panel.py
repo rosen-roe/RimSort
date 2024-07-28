@@ -230,18 +230,18 @@ class ModListItemInner(QWidget):
                 ):
                     self.mod_source_icon.setObjectName("steamcmd")
                 else:
-                    self.mod_source_icon.setObjectName("本地")
+                    self.mod_source_icon.setObjectName("local")
                     self.mod_source_icon.setToolTip("本地安装")
             elif data_source == "workshop":
-                self.mod_source_icon.setObjectName("创意工坊")
+                self.mod_source_icon.setObjectName("workshop")
                 self.mod_source_icon.setToolTip("通过Steam订阅")
         # Set label color if mod is invalid
         if self.filtered:
-            self.main_label.setObjectName("筛选的列表项标签")
+            self.main_label.setObjectName("ListItemLabelFiltered")
         elif self.invalid or self.mismatch:
-            self.main_label.setObjectName("列表项标签无效")
+            self.main_label.setObjectName("ListItemLabelInvalid")
         else:
-            self.main_label.setObjectName("列表项标签")
+            self.main_label.setObjectName("ListItemLabel")
         # Add icons
         if self.git_icon:
             self.main_item_layout.addWidget(self.git_icon, Qt.AlignmentFlag.AlignRight)
@@ -1971,7 +1971,7 @@ class ModsPanel(QWidget):
         # ACTIVE mod list widget
         self.active_mods_label = QLabel("启用 [0]")
         self.active_mods_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.active_mods_label.setObjectName("摘要值")
+        self.active_mods_label.setObjectName("summaryValue")
         self.active_mods_list = ModListWidget(
             list_type="Active",
             settings_controller=self.settings_controller,
@@ -2024,18 +2024,18 @@ class ModsPanel(QWidget):
         self.active_mods_search_layout.addWidget(self.active_mods_search_filter, 70)
         # Active mods list Errors/warnings widgets
         self.errors_summary_frame = QFrame()
-        self.errors_summary_frame.setObjectName("错误帧")
+        self.errors_summary_frame.setObjectName("errorFrame")
         self.errors_summary_layout = QHBoxLayout()
         self.errors_summary_layout.setContentsMargins(0, 0, 0, 0)
         self.errors_summary_layout.setSpacing(2)
         self.warnings_icon = QLabel()
         self.warnings_icon.setPixmap(ModListIcons.warning_icon().pixmap(QSize(20, 20)))
         self.warnings_text = QLabel("0 警告(s)")
-        self.warnings_text.setObjectName("摘要值")
+        self.warnings_text.setObjectName("summaryValue")
         self.errors_icon = QLabel()
         self.errors_icon.setPixmap(ModListIcons.error_icon().pixmap(QSize(20, 20)))
         self.errors_text = QLabel("0 错误(s)")
-        self.errors_text.setObjectName("摘要值")
+        self.errors_text.setObjectName("summaryValue")
         self.warnings_layout = QHBoxLayout()
         self.warnings_layout.addWidget(self.warnings_icon, 1)
         self.warnings_layout.addWidget(self.warnings_text, 99)
@@ -2055,7 +2055,7 @@ class ModsPanel(QWidget):
         # INACTIVE mod list widgets
         self.inactive_mods_label = QLabel("非启用 [0]")
         self.inactive_mods_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.inactive_mods_label.setObjectName("摘要值")
+        self.inactive_mods_label.setObjectName("summaryValue")
         self.inactive_mods_list = ModListWidget(
             list_type="非启用",
             settings_controller=self.settings_controller,
@@ -2094,7 +2094,7 @@ class ModsPanel(QWidget):
             self.on_inactive_mods_search_clear
         )
         self.inactive_mods_search_filter = QComboBox()
-        self.inactive_mods_search_filter.setObjectName("主用户界面")
+        self.inactive_mods_search_filter.setObjectName("MainUI")
         self.inactive_mods_search_filter.setMaximumWidth(140)
         self.inactive_mods_search_filter.addItems(
             ["名称", "模组ID", "作者", "已发布文件ID"]
