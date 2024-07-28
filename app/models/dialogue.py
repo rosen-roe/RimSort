@@ -216,7 +216,7 @@ def show_warning(
     warning_message_box = QMessageBox()
     warning_message_box.setTextFormat(Qt.TextFormat.RichText)
     warning_message_box.setIcon(QMessageBox.Icon.Warning)
-    warning_message_box.setObjectName("对话")
+    warning_message_box.setObjectName("dialogue")
     if title:
         warning_message_box.setWindowTitle(title)
     else:

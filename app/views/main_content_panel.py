@@ -1376,16 +1376,16 @@ class MainContent(QObject):
             logger.debug("USER ACTION: 按取消或无模组ID，通过")
             return
         # Clear Active and Inactive search and data source filter
-        self.mods_panel.signal_clear_search(list_type="启用")
+        self.mods_panel.signal_clear_search(list_type="Active")
         self.mods_panel.active_mods_filter_data_source_index = len(
             self.mods_panel.data_source_filter_icons
         )
-        self.mods_panel.signal_search_source_filter(list_type="启用")
-        self.mods_panel.signal_clear_search(list_type="非启用")
+        self.mods_panel.signal_search_source_filter(list_type="Active")
+        self.mods_panel.signal_clear_search(list_type="Inactive")
         self.mods_panel.inactive_mods_filter_data_source_index = len(
             self.mods_panel.data_source_filter_icons
         )
-        self.mods_panel.signal_search_source_filter(list_type="非启用")
+        self.mods_panel.signal_search_source_filter(list_type="Inactive")
 
         # Log the attempt to import mods list from Rentry.co
         logger.info(
@@ -1801,12 +1801,12 @@ class MainContent(QObject):
             self.active_mods_uuids_restore_state
             and self.inactive_mods_uuids_restore_state
         ):
-            self.mods_panel.signal_clear_search("启用")
+            self.mods_panel.signal_clear_search("Active")
             self.mods_panel.active_mods_filter_data_source_index = len(
                 self.mods_panel.data_source_filter_icons
             )
             self.mods_panel.on_active_mods_search_data_source_filter()
-            self.mods_panel.signal_clear_search("非启用")
+            self.mods_panel.signal_clear_search("Inactive")
             self.mods_panel.inactive_mods_filter_data_source_index = len(
                 self.mods_panel.data_source_filter_icons
             )
