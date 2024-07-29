@@ -646,7 +646,7 @@ class SettingsController(QObject):
             title="重置为默认值",
             text="是否确实要将所有设置重置为默认值？",
         )
-        if answer == "取消":
+        if answer == "Cancel":
             return
 
         self.settings = Settings()

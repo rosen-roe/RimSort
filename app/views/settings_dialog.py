@@ -103,7 +103,7 @@ class SettingsDialog(QDialog):
         buttons_layout.addWidget(self.locations_autodetect_button)
 
         # "Clear" button"
-        self.locations_clear_button = QPushButton("Clear All Locations", tab)
+        self.locations_clear_button = QPushButton("清空所有位置", tab)
         buttons_layout.addWidget(self.locations_clear_button)
 
     def _do_game_location_area(self, tab_layout: QVBoxLayout) -> None:
