@@ -7,7 +7,6 @@ import sys
 import time
 import traceback
 import webbrowser
-from toposort import CircularDependencyError
 from functools import partial
 from gc import collect
 from io import BytesIO
@@ -20,6 +19,9 @@ from urllib.parse import urlparse
 from zipfile import ZipFile
 
 from loguru import logger
+
+from app.utils.generic import platform_specific_open
+from app.utils.system_info import SystemInfo
 
 # GitPython depends on git executable being available in PATH
 try:
@@ -58,7 +60,6 @@ from app.utils.generic import (
     delete_files_except_extension,
     launch_game_process,
     open_url_browser,
-    platform_specific_open,
     upload_data_to_0x0_st,
 )
 from app.utils.metadata import MetadataManager, SettingsController
@@ -114,7 +115,7 @@ class MainContent(QObject):
         """
         if not hasattr(self, "initialized"):
             super(MainContent, self).__init__()
-            logger.debug("初始化主要内容")
+            logger.debug("Initializing MainContent")
 
             self.settings_controller = settings_controller
 
@@ -181,6 +182,18 @@ class MainContent(QObject):
             EventBus().do_sort_active_mods_list.connect(self._do_sort)
             EventBus().do_save_active_mods_list.connect(self._do_save)
             EventBus().do_run_game.connect(self._do_run_game)
+
+            # Shortcuts submenu Eventbus
+            EventBus().do_open_app_directory.connect(self._do_open_app_directory)
+            EventBus().do_open_settings_directory.connect(
+                self._do_open_settings_directory
+            )
+            EventBus().do_open_rimsort_logs_directory.connect(
+                self._do_open_rimsort_logs_directory
+            )
+            EventBus().do_open_rimworld_logs_directory.connect(
+                self._do_open_rimworld_logs_directory
+            )
 
             # Edit Menu bar Eventbus
             EventBus().do_rule_editor.connect(
@@ -299,7 +312,7 @@ class MainContent(QObject):
             self.inactive_mods_uuids_restore_state: list[str] = []
 
             # Store duplicate_mods for global access
-            self.duplicate_mods = {}
+            self.duplicate_mods: dict[str, Any] = {}
 
             # Instantiate query runner
             self.query_runner: RunnerPanel | None = None
@@ -310,7 +323,7 @@ class MainContent(QObject):
             # Instantiate todds runner
             self.todds_runner: RunnerPanel | None = None
 
-            logger.info("已完成主线内容初始化")
+            logger.info("Finished MainContent initialization")
             self.initialized = True
 
     @classmethod
@@ -318,7 +331,7 @@ class MainContent(QObject):
         if cls._instance is None:
             cls._instance = cls(*args, **kwargs)
         elif args or kwargs:
-            raise ValueError("主内容实例已初始化。")
+            raise ValueError("MainContent instance has already been initialized.")
         return cls._instance
 
     def check_if_essential_paths_are_set(self, prompt: bool = True) -> bool:
@@ -335,30 +348,30 @@ class MainContent(QObject):
         config_folder_path = self.settings_controller.settings.instances[
             current_instance
         ].config_folder
-        logger.debug(f"游戏文件夹: {game_folder_path}")
-        logger.debug(f"配置文件夹: {config_folder_path}")
+        logger.debug(f"Game folder: {game_folder_path}")
+        logger.debug(f"Config folder: {config_folder_path}")
         if (
             game_folder_path
             and config_folder_path
             and os.path.exists(game_folder_path)
             and os.path.exists(config_folder_path)
         ):
-            logger.info("基本路径设置!")
+            logger.info("Essential paths set!")
             return True
         else:
-            logger.warning("基本路径无效或未设置!")
+            logger.warning("Essential path(s) are invalid or not set!")
             answer = dialogue.show_dialogue_conditional(
-                title="基本路径",
-                text="基本路径无效或未设置\n",
+                title="Essential path(s)",
+                text="Essential path(s) are invalid or not set!\n",
                 information=(
-                    "RimSort 至少需要设置游戏文件夹和"
-                    "配置文件夹路径，并且路径都存在。请设置"
-                    "这两种路径都可以手动或使用自动检测功能。\n\n"
-                    "您现在要配置它们吗?"
+                    "RimSort requires, at the minimum, for the game install folder and the "
+                    "config folder paths to be set, and that the paths both exist. Please set "
+                    "both of these manually or by using the autodetect functionality.\n\n"
+                    "Would you like to configure them now?"
                 ),
             )
             if answer == "&Yes":
-                self.settings_controller.show_settings_dialog("位置")
+                self.settings_controller.show_settings_dialog("Locations")
             return False
 
     def ___get_relative_middle(self, some_list: ModListWidget) -> int:
@@ -488,7 +501,7 @@ class MainContent(QObject):
         :param inactive_mods_uuids: list of inactive mod uuids
         """
         logger.info(
-            f"将模组数据插入到启用的[{len(active_mods_uuids)}]模组列表和非启用的[{len(inactive_mods_uuids)}]模组列表"
+            f"Inserting mod data into active [{len(active_mods_uuids)}] and inactive [{len(inactive_mods_uuids)}] mod lists"
         )
         self.mods_panel.active_mods_list.recreate_mod_list(
             list_type="active", uuids=active_mods_uuids
@@ -499,7 +512,7 @@ class MainContent(QObject):
             key=ModsPanelSortKey.MODNAME,
         )
         logger.info(
-            f"已完成模组数据插入到启用的[{len(active_mods_uuids)}]模组列表和非启用的[{len(inactive_mods_uuids)}]模组列表"
+            f"Finished inserting mod data into active [{len(active_mods_uuids)}] and inactive [{len(inactive_mods_uuids)}] mod lists"
         )
         # Recalculate warnings for both lists
         # self.mods_panel.active_mods_list.recalculate_warnings_signal.emit()
@@ -510,19 +523,19 @@ class MainContent(QObject):
             [f"* {mod}" for mod in self.duplicate_mods.keys()]
         )
         dialogue.show_warning(
-            title="找到了重复的模组",
-            text="在启用模组列表中找到的ID重复的模组",
+            title="Duplicate mod(s) found",
+            text="Duplicate mods(s) found for package ID(s) in your ModsConfig.xml (active mods list)",
             information=(
-                "以下模组列表已在您的模组配置文件中设置为启用状态"
-                "并在您的模组数据源中发现了这些模组的重复实例。"
-                "原版游戏将使用特定模组ID的第一个 “本地模组” "
-                "游戏本身如此，所以RimSort也会遵循这个逻辑。"
+                "The following list of mods were set active in your ModsConfig.xml and "
+                "duplicate instances were found of these mods in your mod data sources. "
+                "The vanilla game will use the first 'local mod' of a particular package ID "
+                "that is found - so RimSort will also adhere to this logic."
             ),
             details=list_of_duplicate_mods,
         )
 
     def __missing_mods_prompt(self) -> None:
-        logger.debug(f"无法找到{len(self.missing_mods)}启用模组的数据")
+        logger.debug(f"Could not find data for {len(self.missing_mods)} active mods")
         if (  # User configuration
             self.settings_controller.settings.try_download_missing_mods
             and self.metadata_manager.external_steam_metadata
@@ -545,11 +558,11 @@ class MainContent(QObject):
         else:
             list_of_missing_mods = "\n".join([f"* {mod}" for mod in self.missing_mods])
             dialogue.show_information(
-                text="找不到一些模组的数据!",
+                text="Could not find data for some mods!",
                 information=(
-                    "下面的模组列表在你的模组列表中被设置为启用的，"
-                    "但是在本地/创意工坊的模组路径中找不到这些模组的数据。"
-                    "\n\n你的游戏配置路径是否正确?"
+                    "The following list of mods were set active in your mods list but "
+                    "no data could be found for these mods in local/workshop mod paths. "
+                    "\n\nAre your game configuration paths correct?"
                 ),
                 details=list_of_missing_mods,
             )
@@ -573,7 +586,7 @@ class MainContent(QObject):
         true, then write the active_mods_data and inactive_mods_data to
         restore variables.
         """
-        logger.info("重新填充模组列表")
+        logger.info("Repopulating mod lists")
         (
             active_mods_uuids,
             inactive_mods_uuids,
@@ -593,7 +606,7 @@ class MainContent(QObject):
         )
         self.active_mods_uuids_last_save = active_mods_uuids
         if is_initial:
-            logger.info("缓存初始启用/非启用模组列表")
+            logger.info("Caching initial active/inactive mod lists")
             self.active_mods_uuids_restore_state = active_mods_uuids
             self.inactive_mods_uuids_restore_state = inactive_mods_uuids
 
@@ -611,7 +624,7 @@ class MainContent(QObject):
 
         :param action: string indicating action
         """
-        logger.info(f"USER ACTION: 接收到的操作{action}")
+        logger.info(f"USER ACTION: received action {action}")
         # game configuration panel actions
         if action == "check_for_update":
             self._do_check_for_update()
@@ -625,7 +638,7 @@ class MainContent(QObject):
         if action == "sort":
             self._do_sort()
         if "textures" in action:
-            logger.debug("启动新的 todds 操作...")
+            logger.debug("Initiating new todds operation...")
             # Setup Environment
             todds_txt_path = str((Path(gettempdir()) / "todds.txt"))
             if os.path.exists(todds_txt_path):
@@ -666,11 +679,11 @@ class MainContent(QObject):
         if action == "reset_steamcmd_acf_data":
             if os.path.exists(self.steamcmd_wrapper.steamcmd_appworkshop_acf_path):
                 logger.debug(
-                    f"删除SteamCMD ACF数据: {self.steamcmd_wrapper.steamcmd_appworkshop_acf_path}"
+                    f"Deleting SteamCMD ACF data: {self.steamcmd_wrapper.steamcmd_appworkshop_acf_path}"
                 )
                 os.remove(self.steamcmd_wrapper.steamcmd_appworkshop_acf_path)
             else:
-                logger.debug("SteamCMD ACF数据不存在。跳过行动。")
+                logger.debug("SteamCMD ACF data does not exist. Skipping action.")
         if action == "update_workshop_mods":
             self._do_check_for_workshop_updates()
         if action == "import_list_file_xml":
@@ -746,7 +759,7 @@ class MainContent(QObject):
     # GAME CONFIGURATION PANEL
 
     def _do_check_for_update(self) -> None:
-        logger.debug("跳过更新检查...")
+        logger.debug("Skipping update check...")
         return
         # NOT NUITKA
         if "__compiled__" not in globals():
@@ -941,7 +954,6 @@ class MainContent(QObject):
     def do_threaded_loading_animation(
         self, gif_path: str, target: Callable[..., Any], text: str | None = None
     ) -> Any:
-        loading_animation_text_label = None
         # Hide the info panel widgets
         self.mod_info_panel.info_panel_frame.hide()
         # Disable widgets while loading
@@ -983,7 +995,6 @@ class MainContent(QObject):
         EventBus().do_save_button_animation_stop.emit()
         # If we are refreshing cache from user action
         if not is_initial:
-            self.mods_panel.list_updated = False
             # Reset the data source filters to default and clear searches
             self.mods_panel.active_mods_filter_data_source_index = len(
                 self.mods_panel.data_source_filter_icons
@@ -1011,7 +1022,7 @@ class MainContent(QObject):
                 target=partial(
                     self.metadata_manager.refresh_cache, is_initial=is_initial
                 ),
-                text="扫描模组资源并填充元数据...",
+                text="Scanning mod sources and populating metadata...",
             )
 
             # Insert mod data into list
@@ -1026,7 +1037,7 @@ class MainContent(QObject):
                 self.__duplicate_mods_prompt()
             elif not self.settings_controller.settings.duplicate_mods_warning:
                 logger.debug(
-                    "用户首选项未配置为显示重复的模组。跳过..."
+                    "User preference is not configured to display duplicate mods. Skipping..."
                 )
 
             # If we have missing mods, prompt user
@@ -1038,17 +1049,17 @@ class MainContent(QObject):
                 self.settings_controller.settings.steam_mods_update_check
             ):  # Check SteamCMD/Steam mods for updates if configured
                 logger.info(
-                    "用户首选项配置为检查创意工节模组是否有更新。检查创意工坊模组更新..."
+                    "User preference is configured to check Workshop mod for updates. Checking for Workshop mod updates..."
                 )
                 self._do_check_for_workshop_updates()
             else:
                 logger.info(
-                    "用户首选项未配置为检查 Steam 模组是否有更新。跳过..."
+                    "User preference is not configured to check Steam mods for updates. Skipping..."
                 )
         else:
             self.__insert_data_into_lists([], [])
             logger.warning(
-                "基本路径尚未确定。请刷新和重置模组列表"
+                "Essential paths have not been set. Passing refresh and resetting mod lists"
             )
             # Wait for settings dialog to be closed before continuing.
             # This is to ensure steamcmd check and other ops are done after the user has a chance to set paths
@@ -1056,7 +1067,7 @@ class MainContent(QObject):
                 loop = QEventLoop()
                 self.settings_controller.settings_dialog.finished.connect(loop.quit)
                 loop.exec_()
-                logger.debug("“设置”对话框已关闭。继续刷新...")
+                logger.debug("Settings dialog closed. Continuing with refresh...")
 
         EventBus().refresh_finished.emit()
 
@@ -1074,8 +1085,8 @@ class MainContent(QObject):
         )
         self.mods_panel.signal_clear_search(list_type="Inactive")
         # Metadata to insert
-        active_mods_uuids = []
-        inactive_mods_uuids = []
+        active_mods_uuids: list[str] = []
+        inactive_mods_uuids: list[str] = []
         logger.info("Clearing mods from active mod list")
         # Define the order of the DLC package IDs
         package_id_order = [
@@ -1120,7 +1131,7 @@ class MainContent(QObject):
         """
         # Get the live list of active and inactive mods. This is because the user
         # will likely sort before saving.
-        logger.debug("开始排序模组")
+        logger.debug("Starting sorting mods")
         self.mods_panel.signal_clear_search(list_type="Active")
         self.mods_panel.active_mods_filter_data_source_index = len(
             self.mods_panel.data_source_filter_icons
@@ -1131,141 +1142,63 @@ class MainContent(QObject):
             self.mods_panel.data_source_filter_icons
         )
         self.mods_panel.on_inactive_mods_search_data_source_filter()
-        active_mod_ids = list()
+        active_package_ids = set()
         for uuid in self.mods_panel.active_mods_list.uuids:
-            active_mod_ids.append(
+            active_package_ids.add(
                 self.metadata_manager.internal_local_metadata[uuid]["packageid"]
             )
 
         # Get the current order of active mods list
         current_order = self.mods_panel.active_mods_list.uuids.copy()
 
-        # Get all active mods and their dependencies (if also active mod)
-        dependencies_graph = deps_sort.gen_deps_graph(
-            self.mods_panel.active_mods_list.uuids, active_mod_ids
+        sorter = Sorter(
+            self.settings_controller.settings.sorting_algorithm,
+            active_package_ids=active_package_ids,
+            active_uuids=set(self.mods_panel.active_mods_list.uuids),
         )
 
-        # Get all active mods and their reverse dependencies
-        reverse_dependencies_graph = deps_sort.gen_rev_deps_graph(
-            self.mods_panel.active_mods_list.uuids, active_mod_ids
-        )
-
-        # Get dependencies graph for tier one mods (load at top mods)
-        tier_one_dependency_graph, tier_one_mods = deps_sort.gen_tier_one_deps_graph(
-            dependencies_graph
-        )
-
-        # Get dependencies graph for tier three mods (load at bottom mods)
-        tier_three_dependency_graph, tier_three_mods = (
-            deps_sort.gen_tier_three_deps_graph(
-                dependencies_graph,
-                reverse_dependencies_graph,
-                self.mods_panel.active_mods_list.uuids,
-            )
-        )
-
-        # Get dependencies graph for tier two mods (load in middle)
-        tier_two_dependency_graph = deps_sort.gen_tier_two_deps_graph(
-            self.mods_panel.active_mods_list.uuids,
-            active_mod_ids,
-            tier_one_mods,
-            tier_three_mods,
-        )
-
-        # Depending on the selected algorithm, sort all tiers with Alphabetical
-        # mimic algorithm or toposort
-        sorting_algorithm = self.settings_controller.settings.sorting_algorithm
-
-        if sorting_algorithm == "Alphabetical":
-            logger.info("选择按字母顺序排序算法")
-            reordered_tier_one_sorted = alpha_sort.do_alphabetical_sort(
-                tier_one_dependency_graph, self.mods_panel.active_mods_list.uuids
-            )
-            reordered_tier_three_sorted = alpha_sort.do_alphabetical_sort(
-                tier_three_dependency_graph,
-                self.mods_panel.active_mods_list.uuids,
-            )
-            reordered_tier_two_sorted = alpha_sort.do_alphabetical_sort(
-                tier_two_dependency_graph, self.mods_panel.active_mods_list.uuids
-            )
-        else:
-            logger.info("选择拓扑排序算法")
-            try:
-                # Sort tier one mods
-                reordered_tier_one_sorted = topo_sort.do_topo_sort(
-                    tier_one_dependency_graph, self.mods_panel.active_mods_list.uuids
-                )
-                # Sort tier three mods
-                reordered_tier_three_sorted = topo_sort.do_topo_sort(
-                    tier_three_dependency_graph,
-                    self.mods_panel.active_mods_list.uuids,
-                )
-                # Sort tier two mods
-                reordered_tier_two_sorted = topo_sort.do_topo_sort(
-                    tier_two_dependency_graph, self.mods_panel.active_mods_list.uuids
-                )
-            except CircularDependencyError:
-                # Propagated from topo_sort.py
-                # Indicates we should forego sorting altogther
-                logger.info("检测到循环依赖关系，放弃排序")
-                return
-
-        logger.info(f"排序的一级模组: {len(reordered_tier_one_sorted)}")
-        logger.info(f"排序的二级模组: {len(reordered_tier_two_sorted)}")
-        logger.info(f"排序的三级模组: {len(reordered_tier_three_sorted)}")
-
-        # Add Tier 1, 2, 3 in order
-        combined_mods = {}
-        for uuid in (
-            reordered_tier_one_sorted
-            + reordered_tier_two_sorted
-            + reordered_tier_three_sorted
-        ):
-            combined_mods[uuid] = self.metadata_manager.internal_local_metadata[uuid]
-
-        new_order = list(combined_mods.keys())
+        success, new_order = sorter.sort()
 
         # Check if the order has changed
-        if new_order == current_order:
+        if success and new_order == current_order:
             logger.info(
-                "列表中模组的顺序没有改变。跳过插入。"
+                "The order of mods in List has not changed. Skipping insertion."
             )
-        else:
+        elif success:
             logger.info(
-                "完成了所有等级的模组组合。插入模组列表！"
+                "Finished combining all tiers of mods. Inserting into mod lists!"
             )
             # Disable widgets while inserting
             self.disable_enable_widgets_signal.emit(False)
             # Insert data into lists
             self.__insert_data_into_lists(
-                combined_mods,
-                {
-                    uuid: self.metadata_manager.internal_local_metadata[uuid]
+                new_order,
+                [
+                    uuid
                     for uuid in self.metadata_manager.internal_local_metadata
-                    if uuid
-                    not in set(
-                        reordered_tier_one_sorted
-                        + reordered_tier_two_sorted
-                        + reordered_tier_three_sorted
-                    )
-                },
+                    if uuid not in set(new_order)
+                ],
             )
             # Enable widgets again after inserting
             self.disable_enable_widgets_signal.emit(True)
+        elif not success:
+            logger.warning("Failed to sort mods. Skipping insertion.")
+        else:
+            logger.warning("Unknown error occurred. Skipping insertion.")
 
     def _do_import_list_file_xml(self) -> None:
         """
         Open a user-selected XML file. Calculate
         and display active and inactive lists based on this file.
         """
-        logger.info("打开文件对话框以选择输入文件")
+        logger.info("Opening file dialog to select input file")
         file_path = dialogue.show_dialogue_file(
             mode="open",
             caption="Open RimWorld mod list",
             _dir=str(AppInfo().app_storage_folder),
             _filter="RimWorld mod list (*.rml *.rws *.xml)",
         )
-        logger.info(f"所选路径: {file_path}")
+        logger.info(f"Selected path: {file_path}")
         if file_path:
             self.mods_panel.signal_clear_search(list_type="Active")
             self.mods_panel.active_mods_filter_data_source_index = len(
@@ -1277,14 +1210,14 @@ class MainContent(QObject):
                 self.mods_panel.data_source_filter_icons
             )
             self.mods_panel.signal_search_source_filter(list_type="Inactive")
-            logger.info(f"尝试从XML导入模组列表: {file_path}")
+            logger.info(f"Trying to import mods list from XML: {file_path}")
             (
                 active_mods_uuids,
                 inactive_mods_uuids,
                 self.duplicate_mods,
                 self.missing_mods,
             ) = metadata.get_mods_from_list(mod_list=file_path)
-            logger.info("根据导入的XML获得新的模组")
+            logger.info("Got new mods according to imported XML")
             self.__insert_data_into_lists(active_mods_uuids, inactive_mods_uuids)
             # If we have duplicate mods, prompt user
             if (
@@ -1295,29 +1228,29 @@ class MainContent(QObject):
                 self.__duplicate_mods_prompt()
             elif not self.settings_controller.settings.duplicate_mods_warning:
                 logger.debug(
-                    "用户首选项未配置为显示重复的模组。跳过..."
+                    "User preference is not configured to display duplicate mods. Skipping..."
                 )
             # If we have missing mods, prompt user
             if self.missing_mods and len(self.missing_mods) >= 1:
                 self.__missing_mods_prompt()
         else:
-            logger.debug("USER ACTION: 按取消，通过")
+            logger.debug("USER ACTION: pressed cancel, passing")
 
     def _do_export_list_file_xml(self) -> None:
         """
         Export the current list of active mods to a user-designated
         file. The current list does not need to have been saved.
         """
-        logger.info("打开文件对话框以指定输出文件")
+        logger.info("Opening file dialog to specify output file")
         file_path = dialogue.show_dialogue_file(
             mode="save",
             caption="Save mod list",
             _dir=str(AppInfo().app_storage_folder),
             _filter="XML (*.xml)",
         )
-        logger.info(f"所选路径: {file_path}")
+        logger.info(f"Selected path: {file_path}")
         if file_path:
-            logger.info("将当前活动模组导出为ModsConfig.xml格式")
+            logger.info("Exporting current active mods to ModsConfig.xml format")
             active_mods = []
             for uuid in self.mods_panel.active_mods_list.uuids:
                 package_id = self.metadata_manager.internal_local_metadata[uuid][
@@ -1325,7 +1258,7 @@ class MainContent(QObject):
                 ]
                 if package_id in active_mods:  # This should NOT be happening
                     logger.critical(
-                        f"尝试将多个相同的模组ID导出到同一模组列表。跳过重复的 {package_id}"
+                        f"Tried to export more than 1 identical package ids to the same mod list. Skipping duplicate {package_id}"
                     )
                     continue
                 else:  # Otherwise, proceed with adding the mod package_id
@@ -1341,13 +1274,13 @@ class MainContent(QObject):
                             active_mods.append(package_id + "_steam")
                             continue  # Append `_steam` suffix if Steam mod, continue to next mod
                     active_mods.append(package_id)
-            logger.info(f"已搜集{len(active_mods)}个启用模组以供导出")
+            logger.info(f"Collected {len(active_mods)} active mods for export")
             mods_config_data = generate_rimworld_mods_list(
                 self.metadata_manager.game_version, active_mods
             )
             try:
                 logger.info(
-                    f"将生成ModsConfig.xml样式列表保存到所选路径: {file_path}"
+                    f"Saving generated ModsConfig.xml style list to selected path: {file_path}"
                 )
                 if not file_path.endswith(".xml"):
                     json_to_xml_write(mods_config_data, file_path + ".xml")
@@ -1355,13 +1288,13 @@ class MainContent(QObject):
                     json_to_xml_write(mods_config_data, file_path)
             except Exception:
                 dialogue.show_fatal_error(
-                    title="无法导出文件",
-                    text="无法将启用模组排序导出到文件:",
+                    title="Failed to export to file",
+                    text="Failed to export active mods to file:",
                     information=f"{file_path}",
                     details=traceback.format_exc(),
                 )
         else:
-            logger.debug("USER ACTION: 按取消，通过")
+            logger.debug("USER ACTION: pressed cancel, passing")
 
     def _do_import_list_rentry(self) -> None:
         # Create an instance of RentryImport
@@ -1370,23 +1303,23 @@ class MainContent(QObject):
         rentry_import.import_rentry_link()
         # Exit if user cancels or no package IDs
         if not rentry_import.package_ids:
-            logger.debug("USER ACTION: 按取消或无模组ID，通过")
+            logger.debug("USER ACTION: pressed cancel or no package IDs, passing")
             return
         # Clear Active and Inactive search and data source filter
-        self.mods_panel.signal_clear_search(list_type="启用")
+        self.mods_panel.signal_clear_search(list_type="Active")
         self.mods_panel.active_mods_filter_data_source_index = len(
             self.mods_panel.data_source_filter_icons
         )
-        self.mods_panel.signal_search_source_filter(list_type="启用")
-        self.mods_panel.signal_clear_search(list_type="非启用")
+        self.mods_panel.signal_search_source_filter(list_type="Active")
+        self.mods_panel.signal_clear_search(list_type="Inactive")
         self.mods_panel.inactive_mods_filter_data_source_index = len(
             self.mods_panel.data_source_filter_icons
         )
-        self.mods_panel.signal_search_source_filter(list_type="非启用")
+        self.mods_panel.signal_search_source_filter(list_type="Inactive")
 
         # Log the attempt to import mods list from Rentry.co
         logger.info(
-            f"尝试从 Rentry.co 列表中导入{len(rentry_import.package_ids)}个模组"
+            f"Trying to import {len(rentry_import.package_ids)} mods from Rentry.co list"
         )
 
         # Generate uuids based on existing mods, calculate duplicates, and missing mods
@@ -1399,7 +1332,7 @@ class MainContent(QObject):
 
         # Insert data into lists
         self.__insert_data_into_lists(active_mods_uuids, inactive_mods_uuids)
-        logger.info("根据导入的 Rentry.co 获得新模组")
+        logger.info("Got new mods according to imported Rentry.co")
 
         # If we have duplicate mods and user preference is configured to display them, prompt user
         if (
@@ -1410,7 +1343,7 @@ class MainContent(QObject):
             self.__duplicate_mods_prompt()
         elif not self.settings_controller.settings.duplicate_mods_warning:
             logger.debug(
-                "用户首选项未配置为显示重复的模组。跳过..."
+                "User preference is not configured to display duplicate mods. Skipping..."
             )
 
         # If we have missing mods, prompt the user
@@ -1426,7 +1359,7 @@ class MainContent(QObject):
 
         # Exit if user cancels or no package IDs
         if not collection_import.package_ids:
-            logger.debug("USER ACTION: 按取消或无模组ID，通过")
+            logger.debug("USER ACTION: pressed cancel or no package IDs, passing")
             return
         # Clear Active and Inactive search and data source filter
         self.mods_panel.signal_clear_search(list_type="Active")
@@ -1442,7 +1375,7 @@ class MainContent(QObject):
 
         # Log the attempt to import mods list from Workshop collection
         logger.info(
-            f"尝试从创意工坊集合列表中导入{len(collection_import.package_ids)}个模组"
+            f"Trying to import {len(collection_import.package_ids)} mods from Workshop collection list"
         )
 
         # Generate uuids based on existing mods, calculate duplicates, and missing mods
@@ -1455,7 +1388,7 @@ class MainContent(QObject):
 
         # Insert data into lists
         self.__insert_data_into_lists(active_mods_uuids, inactive_mods_uuids)
-        logger.info("根据导入的创意工坊集合获得新模组")
+        logger.info("Got new mods according to imported Workshop collection")
 
         # If we have duplicate mods and user preference is configured to display them, prompt user
         if (
@@ -1466,7 +1399,7 @@ class MainContent(QObject):
             self.__duplicate_mods_prompt()
         elif not self.settings_controller.settings.duplicate_mods_warning:
             logger.debug(
-                "用户首选项未配置为显示重复的模组。跳过..."
+                "User preference is not configured to display duplicate mods. Skipping..."
             )
 
         # If we have missing mods, prompt the user
@@ -1478,7 +1411,7 @@ class MainContent(QObject):
         Export the current list of active mods to the clipboard in a
         readable format. The current list does not need to have been saved.
         """
-        logger.info("生成报告以将模组列表导出到剪贴板")
+        logger.info("Generating report to export mod list to clipboard")
         # Build our lists
         active_mods = []
         active_mods_packageid_to_uuid = {}
@@ -1488,32 +1421,32 @@ class MainContent(QObject):
             ]
             if package_id in active_mods:  # This should NOT be happening
                 logger.critical(
-                    "尝试将多个相同的模组ID导出到同一模组列表。"
-                    + f"跳过重复项{package_id}"
+                    "Tried to export more than 1 identical package ids to the same mod list. "
+                    + f"Skipping duplicate {package_id}"
                 )
                 continue
             else:  # Otherwise, proceed with adding the mod package_id
                 active_mods.append(package_id)
                 active_mods_packageid_to_uuid[package_id] = uuid
-        logger.info(f"已搜集{len(active_mods)}个启用模组以供导出")
+        logger.info(f"Collected {len(active_mods)} active mods for export")
         # Build our report
         active_mods_clipboard_report = (
-            f"由 RimSort 创建，版本{AppInfo().app_version}"
-            + f"\n创建此列表的 RimWorld 游戏版本: {self.metadata_manager.game_version}"
-            + f"\n启用模组的总数: {len(active_mods)}\n"
+            f"Created with RimSort {AppInfo().app_version}"
+            + f"\nRimWorld game version this list was created for: {self.metadata_manager.game_version}"
+            + f"\nTotal # of mods: {len(active_mods)}\n"
         )
         for package_id in active_mods:
             uuid = active_mods_packageid_to_uuid[package_id]
             if self.metadata_manager.internal_local_metadata[uuid].get("name"):
                 name = self.metadata_manager.internal_local_metadata[uuid]["name"]
             else:
-                name = "未指定名称"
+                name = "No name specified"
             if self.metadata_manager.internal_local_metadata[uuid].get("url"):
                 url = self.metadata_manager.internal_local_metadata[uuid]["url"]
             elif self.metadata_manager.internal_local_metadata[uuid].get("steam_url"):
                 url = self.metadata_manager.internal_local_metadata[uuid]["steam_url"]
             else:
-                url = "未指定网址"
+                url = "No url specified"
             active_mods_clipboard_report = (
                 active_mods_clipboard_report
                 + f"\n{name} "
@@ -1522,9 +1455,9 @@ class MainContent(QObject):
             )
         # Copy report to clipboard
         dialogue.show_information(
-            title="导出启用模组列表",
-            text="将启用模组列表报告复制到剪贴板...",
-            information='点击 “显示详情” 查看完整报告！',
+            title="Export active mod list",
+            text="Copied active mod list report to clipboard...",
+            information='Click "Show Details" to see the full report!',
             details=f"{active_mods_clipboard_report}",
         )
         copy_to_clipboard_safely(active_mods_clipboard_report)
@@ -1547,8 +1480,8 @@ class MainContent(QObject):
             ]
             if package_id in active_mods:  # This should NOT be happening
                 logger.critical(
-                    "尝试将多个相同的模组ID导出到同一模组列表。"
-                    + f"跳过重复项{package_id}"
+                    "Tried to export more than 1 identical package ids to the same mod list. "
+                    + f"Skipping duplicate {package_id}"
                 )
                 continue
             else:  # Otherwise, proceed with adding the mod package_id
@@ -1568,30 +1501,31 @@ class MainContent(QObject):
                     ]["publishedfileid"]
                     active_steam_mods_packageid_to_pfid[package_id] = publishedfileid
                     pfids.append(publishedfileid)
-        logger.info(f"已搜集{len(active_mods)}个启用模组以供导出")
+        logger.info(f"Collected {len(active_mods)} active mods for export")
         if len(pfids) > 0:  # No empty queries...
             # Compile list of Steam Workshop publishing preview images that correspond
             # to a Steam mod in the active mod list
             webapi_response = ISteamRemoteStorage_GetPublishedFileDetails(pfids)
-            for metadata in webapi_response:
-                pfid = metadata["publishedfileid"]
-                if metadata["result"] != 1:
-                    logger.warning("导出 Rentry.co :无法获取模组的数据！")
-                    logger.warning(
-                        f"从 WebAPI 返回的模组{pfid}的结果无效"
-                    )
-                else:
-                    # Retrieve the preview image URL from the response
-                    active_steam_mods_pfid_to_preview_url[pfid] = metadata[
-                        "preview_url"
-                    ]
+            if webapi_response is not None:
+                for metadata in webapi_response:
+                    pfid = metadata["publishedfileid"]
+                    if metadata["result"] != 1:
+                        logger.warning("Rentry.co export: Unable to get data for mod!")
+                        logger.warning(
+                            f"Invalid result returned from WebAPI for mod {pfid}"
+                        )
+                    else:
+                        # Retrieve the preview image URL from the response
+                        active_steam_mods_pfid_to_preview_url[pfid] = metadata[
+                            "preview_url"
+                        ]
         # Build our report
         active_mods_rentry_report = (
-            "# RimWorld 模组列表      ![](https://github.com/RimSort/RimSort/blob/main/docs/rentry_preview.png?raw=true)"
-            + f"\n由 RimSort 创建，版本{AppInfo().app_version}"
-            + f"\n创建此列表的 RimWorld 游戏版本: `{self.metadata_manager.game_version}`"
-            + "\n!!! 信息：本地模组以黄色标签标记，括号内显示其模组ID"
-            + f"\n\n\n\n!!! 注意模组列表的的启用数量: `{len(active_mods)}`\n"
+            "# RimWorld mod list       ![](https://github.com/RimSort/RimSort/blob/main/docs/rentry_preview.png?raw=true)"
+            + f"\nCreated with RimSort {AppInfo().app_version}"
+            + f"\nMod list was created for game version: `{self.metadata_manager.game_version}`"
+            + "\n!!! info Local mods are marked as yellow labels with packageid in brackets."
+            + f"\n\n\n\n!!! note Mod list length: `{len(active_mods)}`\n"
         )
         # Add a line for each mod
         for package_id in active_mods:
@@ -1600,7 +1534,7 @@ class MainContent(QObject):
             if self.metadata_manager.internal_local_metadata[uuid].get("name"):
                 name = self.metadata_manager.internal_local_metadata[uuid]["name"]
             else:
-                name = "未指定名称"
+                name = "No name specified"
             if (
                 self.metadata_manager.internal_local_metadata[uuid].get("steamcmd")
                 or self.metadata_manager.internal_local_metadata[uuid]["data_source"]
@@ -1652,17 +1586,17 @@ class MainContent(QObject):
                 if url is None:
                     active_mods_rentry_report = (
                         active_mods_rentry_report
-                        + f"\n!!! 警告{str(count) + '.'} {name} "
+                        + f"\n!!! warning {str(count) + '.'} {name} "
                         + "{"
-                        + f"模组ID: {package_id}"
+                        + f"packageid: {package_id}"
                         + "} "
                     )
                 else:
                     active_mods_rentry_report = (
                         active_mods_rentry_report
-                        + f"\n!!! 警告 {str(count) + '.'} [{name}]({url}) "
+                        + f"\n!!! warning {str(count) + '.'} [{name}]({url}) "
                         + "{"
-                        + f"模组ID: {package_id}"
+                        + f"packageid: {package_id}"
                         + "} "
                     )
         # Upload the report to Rentry.co
@@ -1672,16 +1606,53 @@ class MainContent(QObject):
         if rentry_uploader.url and host and host.endswith("rentry.co"):  # type: ignore
             copy_to_clipboard_safely(rentry_uploader.url)
             dialogue.show_information(
-                title="上传启用的模组列表",
-                text=f"已将活动模组列表报告上传至 Rentry.co ！ 网站已复制到剪贴板:\n\n{rentry_uploader.url}",
-                information='点击 “显示详情” 查看完整报告！',
+                title="Uploaded active mod list",
+                text=f"Uploaded active mod list report to Rentry.co! The URL has been copied to your clipboard:\n\n{rentry_uploader.url}",
+                information='Click "Show Details" to see the full report!',
                 details=f"{active_mods_rentry_report}",
             )
         else:
             dialogue.show_warning(
-                title="上传失败",
-                text="无法将导出的启用模组列表上传到 Rentry.co",
+                title="Failed to upload",
+                text="Failed to upload exported active mod list to Rentry.co",
             )
+
+    def _do_open_app_directory(self) -> None:
+        app_directory = os.getcwd()
+        logger.info(f"Opening app directory: {app_directory}")
+        platform_specific_open(os.getcwd())
+
+    def _do_open_settings_directory(self) -> None:
+        settings_directory = AppInfo().app_storage_folder
+        logger.info(f"Opening settings directory: {settings_directory}")
+        platform_specific_open(settings_directory)
+
+    def _do_open_rimsort_logs_directory(self) -> None:
+        logs_directory = AppInfo().user_log_folder
+        logger.info(f"Opening RimSort logs directory: {logs_directory}")
+        platform_specific_open(logs_directory)
+
+    def _do_open_rimworld_logs_directory(self) -> None:
+        user_home = Path.home()
+        logs_directory = None
+        if SystemInfo().operating_system == SystemInfo.OperatingSystem.MACOS:
+            logs_directory = (
+                f"/{user_home}/Library/Logs/Ludeon Studios/RimWorld by Ludeon Studios"
+            )
+            platform_specific_open(Path(logs_directory))
+        elif SystemInfo().operating_system == SystemInfo.OperatingSystem.LINUX:
+            logs_directory = (
+                f"{user_home}/.config/unity3d/Ludeon Studios/RimWorld by Ludeon Studios"
+            )
+            platform_specific_open(Path(logs_directory))
+        elif SystemInfo().operating_system == SystemInfo.OperatingSystem.WINDOWS:
+            logs_directory = f"{user_home}/AppData/LocalLow/Ludeon Studios/RimWorld by Ludeon Studios"
+            platform_specific_open(Path(logs_directory).resolve())
+
+        if logs_directory:
+            logger.info(f"Opening RimWorld logs directory: {logs_directory}")
+        else:
+            logger.error("Could not open RimWorld logs directory on an unknown system")
 
     @Slot()
     def _on_do_upload_rimsort_log(self) -> None:
@@ -1707,30 +1678,30 @@ class MainContent(QObject):
     def _upload_log(self, path: Path) -> None:
         if not os.path.exists(path):
             dialogue.show_warning(
-                title="找不到文件",
-                text="您尝试上传的文件不存在。",
-                information=f"文件: {path}",
+                title="File not found",
+                text="The file you are trying to upload does not exist.",
+                information=f"File: {path}",
             )
             return
 
         success, ret = self.do_threaded_loading_animation(
             gif_path=str(AppInfo().theme_data_folder / "default-icons" / "rimsort.gif"),
             target=partial(upload_data_to_0x0_st, str(path)),
-            text=f"将 {path.name} 上传到 0x0.st...",
+            text=f"Uploading {path.name} to 0x0.st...",
         )
 
         if success:
             copy_to_clipboard_safely(ret)
             dialogue.show_information(
-                title="已上传文件",
-                text=f"已将 {path.name} 上传到 http://0x0.st/",
-                information=f"网址已复制到剪贴板:\n\n{ret}",
+                title="Uploaded file",
+                text=f"Uploaded {path.name} to http://0x0.st/",
+                information=f"The URL has been copied to your clipboard:\n\n{ret}",
             )
             webbrowser.open(ret)
         else:
             dialogue.show_warning(
-                title="上传文件失败。",
-                text="无法将文件上传到 0x0.st",
+                title="Failed to upload file.",
+                text="Failed to upload the file to 0x0.st",
                 information=ret,
             )
 
@@ -1746,7 +1717,7 @@ class MainContent(QObject):
             ]
             if package_id in active_mods:  # This should NOT be happening
                 logger.critical(
-                    f"尝试将多个相同的模组ID 导出到同一模组列表。跳过重复项{package_id}"
+                    f"Tried to export more than 1 identical package ids to the same mod list. Skipping duplicate {package_id}"
                 )
                 continue
             else:  # Otherwise, proceed with adding the mod package_id
@@ -1762,7 +1733,7 @@ class MainContent(QObject):
                         active_mods.append(package_id + "_steam")
                         continue  # Append `_steam` suffix if Steam mod, continue to next mod
                 active_mods.append(package_id)
-        logger.info(f"已搜集{len(active_mods)}个启用模组以保存")
+        logger.info(f"Collected {len(active_mods)} active mods for saving")
 
         mods_config_data = generate_rimworld_mods_list(
             self.metadata_manager.game_version, active_mods
@@ -1778,15 +1749,15 @@ class MainContent(QObject):
         try:
             json_to_xml_write(mods_config_data, mods_config_path)
         except Exception:
-            logger.error("无法保存启用模组")
+            logger.error("Could not save active mods")
             dialogue.show_fatal_error(
-                title="无法保存启用模组",
-                text="无法将启用模组列表保存到文件:",
+                title="Could not save active mods",
+                text="Failed to save active mods to file:",
                 information=f"{mods_config_path}",
                 details=traceback.format_exc(),
             )
         EventBus().do_save_button_animation_stop.emit()
-        logger.info("已完成启用模组的保存")
+        logger.info("Finished saving active mods")
 
     def _do_restore(self) -> None:
         """
@@ -1798,18 +1769,18 @@ class MainContent(QObject):
             self.active_mods_uuids_restore_state
             and self.inactive_mods_uuids_restore_state
         ):
-            self.mods_panel.signal_clear_search("启用")
+            self.mods_panel.signal_clear_search("Active")
             self.mods_panel.active_mods_filter_data_source_index = len(
                 self.mods_panel.data_source_filter_icons
             )
             self.mods_panel.on_active_mods_search_data_source_filter()
-            self.mods_panel.signal_clear_search("非启用")
+            self.mods_panel.signal_clear_search("Inactive")
             self.mods_panel.inactive_mods_filter_data_source_index = len(
                 self.mods_panel.data_source_filter_icons
             )
             self.mods_panel.on_inactive_mods_search_data_source_filter()
             logger.info(
-                f"恢复缓存的启用模组列表[{len(self.active_mods_uuids_restore_state)}]和非启用模组列表[{len(self.inactive_mods_uuids_restore_state)}]"
+                f"Restoring cached mod lists with active list [{len(self.active_mods_uuids_restore_state)}] and inactive list [{len(self.inactive_mods_uuids_restore_state)}]"
             )
             # Disable widgets while inserting
             self.disable_enable_widgets_signal.emit(False)
@@ -1822,26 +1793,10 @@ class MainContent(QObject):
             self.disable_enable_widgets_signal.emit(True)
         else:
             logger.warning(
-                "由于客户端启动不正确，未设置恢复功能的缓存模组列表。请通过还原列表..."
+                "Cached mod lists for restore function not set as client started improperly. Passing on restore"
             )
 
-    def _do_edit_run_args(self) -> None:
-        """
-        Opens a QDialogInput that allows the user to edit the run args
-        that are configured to be passed to the Rimworld executable
-        """
-        args, ok = dialogue.show_dialogue_input(
-            title="编辑运行参数",
-            label="输入要传递给 Rimworld 可执行文件的逗号分隔参数列表\n\n"
-            + "示例: \n-popupwindow,-logfile,/path/to/file.log",
-            text=",".join(self.settings_controller.settings.run_args),
-        )
-        if ok:
-            self.settings_controller.settings.run_args = args.split(",")
-            self.settings_controller.settings.save()
-
     # TODDS ACTIONS
-
     def _do_optimize_textures(self, todds_txt_path: str) -> None:
         # Setup environment
         todds_interface = ToddsInterface(
@@ -1854,7 +1809,7 @@ class MainContent(QObject):
         self.todds_runner = RunnerPanel(
             todds_dry_run_support=self.settings_controller.settings.todds_dry_run
         )
-        self.todds_runner.setWindowTitle("RimSort - todds 纹理/贴图编码器")
+        self.todds_runner.setWindowTitle("RimSort - todds texture encoder")
         self.todds_runner.show()
 
         todds_interface.execute_todds_cmd(todds_txt_path, self.todds_runner)
@@ -1869,7 +1824,7 @@ class MainContent(QObject):
         self.todds_runner = RunnerPanel(
             todds_dry_run_support=self.settings_controller.settings.todds_dry_run
         )
-        self.todds_runner.setWindowTitle("RimSort - todds 纹理/贴图编码器")
+        self.todds_runner.setWindowTitle("RimSort - todds texture encoder")
         self.todds_runner.show()
 
         # Delete all .dds textures using todds
@@ -1899,32 +1854,31 @@ class MainContent(QObject):
                 metadata.query_workshop_update_data,
                 mods=self.metadata_manager.internal_local_metadata,
             ),
-            text="检查 Steam 创意工坊模组是否有更新...",
+            text="Checking Steam Workshop mods for updates...",
         )
         # If we failed to check for updates, skip the comparison(s) & UI prompt
         if updates_checked == "failed":
             dialogue.show_warning(
-                title="无法检查更新",
-                text="RimSort 无法查询 Steam WebAPI 以获取更新信息！\n",
-                information="您是否已连接到 Internet？",
+                title="Unable to check for updates",
+                text="RimSort was unable to query Steam WebAPI for update information!\n",
+                information="Are you connected to the Internet?",
             )
             return
-        self.workshop_mod_updater = ModUpdaterPrompt(
+        workshop_mod_updater = ModUpdaterPrompt(
             internal_mod_metadata=self.metadata_manager.internal_local_metadata
         )
-        self.workshop_mod_updater._populate_from_metadata()
-        if self.workshop_mod_updater.updates_found:
-            logger.debug("显示潜在的创意工坊模组更新")
-            self.workshop_mod_updater.steamcmd_downloader_signal.connect(
+        workshop_mod_updater._populate_from_metadata()
+        if workshop_mod_updater.updates_found:
+            logger.debug("Displaying potential Workshop mod updates")
+            workshop_mod_updater.steamcmd_downloader_signal.connect(
                 self._do_download_mods_with_steamcmd
             )
-            self.workshop_mod_updater.steamworks_subscription_signal.connect(
+            workshop_mod_updater.steamworks_subscription_signal.connect(
                 self._do_steamworks_api_call_animated
             )
-            self.workshop_mod_updater.show()
+            workshop_mod_updater.show()
         else:
-            self.status_signal.emit("所有创意工坊模组都是最新的！")
-            self.workshop_mod_updater = None
+            self.status_signal.emit("All Workshop mods appear to be up to date!")
 
     def _do_setup_steamcmd(self) -> None:
         if (
@@ -1934,8 +1888,8 @@ class MainContent(QObject):
         ):
             dialogue.show_warning(
                 title="RimSort - SteamCMD setup",
-                text="无法创建 SteamCMD 运行程序！",
-                information="有一个活动进程已经在运行！",
+                text="Unable to create SteamCMD runner!",
+                information="There is an active process already running!",
                 details=f"PID {self.steamcmd_runner.process.processId()} : "
                 + self.steamcmd_runner.process.program(),
             )
@@ -1947,7 +1901,7 @@ class MainContent(QObject):
             self.steamcmd_runner = RunnerPanel()
             self.steamcmd_runner.setWindowTitle("RimSort - SteamCMD setup")
             self.steamcmd_runner.show()
-            self.steamcmd_runner.message("设置 steamcmd...")
+            self.steamcmd_runner.message("Setting up steamcmd...")
             self.steamcmd_wrapper.setup_steamcmd(
                 local_mods_path,
                 False,
@@ -1956,13 +1910,13 @@ class MainContent(QObject):
         else:
             dialogue.show_warning(
                 title="RimSort - SteamCMD setup",
-                text="无法启动 SteamCMD 安装。本地模组路径未设置！",
-                information="在尝试安装之前，请在“设置”中配置本地模组路径。",
+                text="Unable to initiate SteamCMD installation. Local mods path not set!",
+                information="Please configure local mods path in Settings before attempting to install.",
             )
 
     def _do_download_mods_with_steamcmd(self, publishedfileids: list[str]) -> None:
         logger.debug(
-            f"正在尝试使用 SteamCMD 下载{len(publishedfileids)}个模组"
+            f"Attempting to download {len(publishedfileids)} mods with SteamCMD"
         )
         # Check for blacklisted mods
         if self.metadata_manager.external_steam_metadata is not None:
@@ -1974,8 +1928,8 @@ class MainContent(QObject):
         if not len(publishedfileids) > 0:
             dialogue.show_warning(
                 title="RimSort",
-                text="操作中未提供任何模组ID。",
-                information="在尝试下载之前，请将模组添加到列表中。",
+                text="No PublishedFileIds were supplied in operation.",
+                information="Please add mods to list before attempting to download.",
             )
             return
         # Check for existing steamcmd_runner process
@@ -1986,8 +1940,8 @@ class MainContent(QObject):
         ):
             dialogue.show_warning(
                 title="RimSort",
-                text="无法创建 SteamCMD 运行程序！",
-                information="有一个活动进程已经在运行！",
+                text="Unable to create SteamCMD runner!",
+                information="There is an active process already running!",
                 details=f"PID {self.steamcmd_runner.process.processId()} : "
                 + self.steamcmd_runner.process.program(),
             )
@@ -1998,26 +1952,30 @@ class MainContent(QObject):
         ):
             if self.steam_browser:
                 self.steam_browser.close()
+            steam_db = self.metadata_manager.external_steam_metadata
+            if steam_db is None:
+                steam_db = {}
+
             self.steamcmd_runner = RunnerPanel(
                 steamcmd_download_tracking=publishedfileids,
-                steam_db=self.metadata_manager.external_steam_metadata,
+                steam_db=steam_db,
             )
             self.steamcmd_runner.steamcmd_downloader_signal.connect(
                 self._do_download_mods_with_steamcmd
             )
-            self.steamcmd_runner.setWindowTitle("RimSort - SteamCMD 下载器")
+            self.steamcmd_runner.setWindowTitle("RimSort - SteamCMD downloader")
             self.steamcmd_runner.show()
             self.steamcmd_runner.message(
-                f"使用 SteamCMD 下载{len(publishedfileids)}个模组..."
+                f"Downloading {len(publishedfileids)} mods with SteamCMD..."
             )
             self.steamcmd_wrapper.download_mods(
                 publishedfileids=publishedfileids, runner=self.steamcmd_runner
             )
         else:
             dialogue.show_warning(
-                title="找不到 SteamCMD",
-                text="找不到 SteamCMD 可执行文件。",
-                information='请设置现有的 SteamCMD 前缀，或使用“设置 SteamCMD”设置新前缀。',
+                title="SteamCMD not found",
+                text="SteamCMD executable was not found.",
+                information='Please setup an existing SteamCMD prefix, or setup a new prefix with "Setup SteamCMD".',
             )
 
     def _do_steamworks_api_call(self, instruction: list[Any]) -> None:
@@ -2036,7 +1994,7 @@ class MainContent(QObject):
         """
         logger.info(f"Received Steamworks API instruction: {instruction}")
         if not self.steamworks_in_use:
-            subscription_actions = ["重新订阅", "订阅", "取消订阅"]
+            subscription_actions = ["resubscribe", "subscribe", "unsubscribe"]
             supported_actions = ["launch_game_process"]
             supported_actions.extend(subscription_actions)
             if (
@@ -2052,11 +2010,11 @@ class MainContent(QObject):
                     # Start the Steamworks API Process
                     steamworks_api_process.start()
                     logger.info(
-                        f"Steamworks API进程包装器已完成处理: {steamworks_api_process.pid}"
+                        f"Steamworks API process wrapper started with PID: {steamworks_api_process.pid}"
                     )
                     steamworks_api_process.join()
                     logger.info(
-                        f"Steamworks API进程包装器已完成处理: {steamworks_api_process.pid}"
+                        f"Steamworks API process wrapper completed for PID: {steamworks_api_process.pid}"
                     )
                     self.steamworks_in_use = False
                 elif (
@@ -2064,7 +2022,7 @@ class MainContent(QObject):
                     and not len(instruction[1]) < 1
                 ):  # ISteamUGC/{SubscribeItem/UnsubscribeItem}
                     logger.info(
-                        f"根据指令{instruction}创建Steamworks API进程"
+                        f"Creating Steamworks API process with instruction {instruction}"
                     )
                     self.steamworks_in_use = True
                     # Maximum processes
@@ -2093,31 +2051,37 @@ class MainContent(QObject):
                     self.steamworks_in_use = False
                 else:
                     logger.warning(
-                        "跳过Steamworks API调用 - 同时只允许进行一次Steamworks API初始化！！"
+                        "Skipping Steamworks API call - only 1 Steamworks API initialization allowed at a time!!"
                     )
             else:
-                logger.error(f"不支持的指令{instruction}")
+                logger.error(f"Unsupported instruction {instruction}")
                 return
         else:
             logger.warning(
-                "Steamworks API已经初始化！我们不需要多次交互。跳过指令..."
+                "Steamworks API is already initialized! We do NOT want multiple interactions. Skipping instruction..."
             )
 
-    def _do_steamworks_api_call_animated(self, instruction: list) -> None:
+    def _do_steamworks_api_call_animated(
+        self, instruction: list[list[str] | str]
+    ) -> None:
         publishedfileids = instruction[1]
         logger.debug(f"Attempting to download {len(publishedfileids)} mods with Steam")
+        steamdb = self.metadata_manager.external_steam_metadata
+        if steamdb is None:
+            steamdb = {}
         # Check for blacklisted mods for subscription actions
         if instruction[0] == "subscribe":
+            assert isinstance(publishedfileids, list)
             publishedfileids = metadata.check_if_pfids_blacklisted(
                 publishedfileids=publishedfileids,
-                steamdb=self.metadata_manager.external_steam_metadata,
+                steamdb=steamdb,
             )
         # No empty publishedfileids
         if not len(publishedfileids) > 0:
             dialogue.show_warning(
                 title="RimSort",
-                text="操作中未提供任何模组ID。",
-                information="请在尝试下载之前将模组添加到列表中。",
+                text="No PublishedFileIds were supplied in operation.",
+                information="Please add mods to list before attempting to download.",
             )
             return
         # Close browser if open
@@ -2127,7 +2091,7 @@ class MainContent(QObject):
         self.do_threaded_loading_animation(
             gif_path=str(AppInfo().theme_data_folder / "default-icons" / "steam.gif"),
             target=partial(self._do_steamworks_api_call, instruction=instruction),
-            text="正在通过Steamworks API处理Steam订阅操作...",
+            text="Processing Steam subscription action(s) via Steamworks API...",
         )
         # self._do_refresh()
 
@@ -2139,8 +2103,8 @@ class MainContent(QObject):
         that are configured to be passed to the Rimworld executable
         """
         args, ok = dialogue.show_dialogue_input(
-            title="输入Git仓库地址",
-            label="请输入Git仓库的URL（http/https）以克隆到本地模组目录:",
+            title="Enter git repo",
+            label="Enter a git repository url (http/https) to clone to local mods:",
         )
         if ok:
             self._do_clone_repo_to_path(
@@ -2150,7 +2114,7 @@ class MainContent(QObject):
                 repo_url=args,
             )
         else:
-            logger.debug("取消操作。")
+            logger.debug("Cancelling operation.")
 
     # EXTERNAL METADATA ACTIONS
 
@@ -2161,26 +2125,26 @@ class MainContent(QObject):
         "Github mod" related actions
         """
         args, ok = dialogue.show_dialogue_input(
-            title="编辑用户名",
-            label="输入您的 Github 用户名:",
+            title="Edit username",
+            label="Enter your Github username:",
             text=self.settings_controller.settings.github_username,
         )
         if ok:
             self.settings_controller.settings.github_username = args
             self.settings_controller.settings.save()
         else:
-            logger.debug("USER ACTION: 取消输入！")
+            logger.debug("USER ACTION: cancelled input!")
             return
         args, ok = dialogue.show_dialogue_input(
-            title="编辑令牌",
-            label="在此处输入您的 Github 个人访问令牌 (ghp_*):",
+            title="Edit token",
+            label="Enter your Github personal access token here (ghp_*):",
             text=self.settings_controller.settings.github_token,
         )
         if ok:
             self.settings_controller.settings.github_token = args
             self.settings_controller.settings.save()
         else:
-            logger.debug("USER ACTION: 取消输入！")
+            logger.debug("USER ACTION: cancelled input!")
             return
 
     def _do_cleanup_gitpython(self, repo: "Repo") -> None:
@@ -2189,12 +2153,12 @@ class MainContent(QObject):
         repo.git.clear_cache()
         del repo
 
-    def _check_git_repos_for_update(self, repo_paths: list) -> None:
+    def _check_git_repos_for_update(self, repo_paths: list[str]) -> None:
         if GIT_EXISTS:
             # Track summary of repo updates
             updates_summary = {}
             for repo_path in repo_paths:
-                logger.info(f"检查 git 存储库的更新，网址为: {repo_path}")
+                logger.info(f"Checking git repository for updates at: {repo_path}")
                 if os.path.exists(repo_path):
                     repo = Repo(repo_path)
                     try:
@@ -2204,14 +2168,15 @@ class MainContent(QObject):
 
                         # Get the local and remote refs
                         local_ref = repo.head.reference
-                        remote_ref = repo.refs[f"origin/{local_ref.name}"]
+                        refs = repo.refs()
+                        remote_ref = refs[f"origin/{local_ref.name}"]
 
                         # Check if the local branch is behind the remote branch
                         if local_ref.commit != remote_ref.commit:
                             local_name = local_ref.name
                             remote_name = remote_ref.name
                             logger.info(
-                                f"本地分支{local_name}与远程分支{remote_name}不同步。正在强制更新。"
+                                f"Local branch {local_name} is not up-to-date with remote branch {remote_name}. Updating forcefully."
                             )
                             # Create a summary of the changes that will be made for the repo to be updated
                             updates_summary[repo_path] = {
@@ -2228,16 +2193,16 @@ class MainContent(QObject):
                                 }
                             )
                         else:
-                            logger.info("本地仓库已经是最新版本。")
+                            logger.info("The local repository is already up-to-date.")
                     except GitCommandError:
                         stacktrace = traceback.format_exc()
                         dialogue.show_warning(
-                            title="更新仓库失败！",
-                            text=f"位于[{repo_path}]的仓库更新失败！\n"
-                            + "您是否已连接到 Internet ？"
-                            + "提供的仓库地址是否有效？",
+                            title="Failed to update repo!",
+                            text=f"The repository supplied at [{repo_path}] failed to update!\n"
+                            + "Are you connected to the Internet? "
+                            + "Is the repo valid?",
                             information=(
-                                f"指定的仓库: {repo.remotes.origin.url}"
+                                f"Supplied repository: {repo.remotes.origin.url}"
                                 if repo
                                 and repo.remotes
                                 and repo.remotes.origin
@@ -2261,15 +2226,15 @@ class MainContent(QObject):
                     ]
                 )
                 dialogue.show_information(
-                    title="Git仓库已更新",
-                    text="以下仓库已从远程拉取了更新:",
+                    title="Git repo(s) updated",
+                    text="The following repo(s) had updates pulled from the remote:",
                     information=repos_updated,
                     details=updates_summarized,
                 )
             else:
                 dialogue.show_information(
-                    title="Git仓库未更新",
-                    text="未发现更新。",
+                    title="Git repo(s) not updated",
+                    text="No updates were found.",
                 )
         else:
             self._do_notify_no_git()
@@ -2298,39 +2263,39 @@ class MainContent(QObject):
             if os.path.exists(repo_path):  # If local repo does exist
                 # Prompt to user to handle
                 answer = dialogue.show_dialogue_conditional(
-                    title="已找到现有仓库",
-                    text="已找到与此仓库相匹配的现有本地仓库:",
+                    title="Existing repository found",
+                    text="An existing local repo that matches this repository was found:",
                     information=(
                         f"{repo_path}\n\n"
-                        + "您希望如何处理？请选择选项:\n"
-                        + "\n1) 克隆新仓库（删除现有仓库并替换）"
-                        + "\n2) 原地更新现有仓库（强制覆盖本地更改）"
+                        + "How would you like to handle? Choose option:\n"
+                        + "\n1) Clone new repository (deletes existing and replaces)"
+                        + "\n2) Update existing repository (in-place force-update)"
                     ),
                     button_text_override=[
-                        "克隆新仓库",
-                        "更新现有仓库",
+                        "Clone new",
+                        "Update existing",
                     ],
                 )
-                if answer == "取消":
+                if answer == "Cancel":
                     logger.debug(
-                        f"用户取消，跳过 {repo_folder_name} 仓库操作。"
+                        f"User cancelled prompt. Skipping any {repo_folder_name} repository actions."
                     )
                     return
-                elif answer == "克隆新仓库":
-                    logger.info(f"正在删除本地Git仓库于: {repo_path}")
+                elif answer == "Clone new":
+                    logger.info(f"Deleting local git repo at: {repo_path}")
                     delete_files_except_extension(directory=repo_path, extension=".dds")
-                elif answer == "更新现有仓库":
+                elif answer == "Update existing":
                     self._do_force_update_existing_repo(
                         base_path=base_path, repo_url=repo_url
                     )
                     return
             # Clone the repo to storage path and notify user
-            logger.info(f"正在将 {repo_url} 克隆到: {repo_path}")
+            logger.info(f"Cloning {repo_url} to: {repo_path}")
             try:
                 Repo.clone_from(repo_url, repo_path)
                 dialogue.show_information(
-                    title="仓库已获取",
-                    text="已克隆配置好的仓库！",
+                    title="Repo retrieved",
+                    text="The configured repository was cloned!",
                     information=f"{repo_url} ->\n" + f"{repo_path}",
                 )
             except GitCommandError:
@@ -2355,30 +2320,30 @@ class MainContent(QObject):
                         )
                     else:
                         # Handle the case when the target branch is not found
-                        logger.warning("目标分支未找到。")
+                        logger.warning("Target branch not found.")
                     dialogue.show_information(
-                        title="仓库已获取",
-                        text="配置好的仓库已使用现有文件重新初始化！（可能是遗留的.dds纹理/贴图文件）",
+                        title="Repo retrieved",
+                        text="The configured repository was reinitialized with existing files! (likely leftover .dds textures)",
                         information=f"{repo_url} ->\n" + f"{repo_path}",
                     )
                 except GitCommandError:
                     stacktrace = traceback.format_exc()
                     dialogue.show_warning(
-                        title="克隆仓库失败！",
-                        text="配置好的仓库克隆/初始化失败！ "
-                        + "您是否已连接到 Internet？ "
-                        + "您配置的仓库是否有效？",
-                        information=f"已配置的仓库: {repo_url}",
+                        title="Failed to clone repo!",
+                        text="The configured repo failed to clone/initialize! "
+                        + "Are you connected to the Internet? "
+                        + "Is your configured repo valid?",
+                        information=f"Configured repository: {repo_url}",
                         details=stacktrace,
                     )
         else:
             # Warn the user so they know to configure in settings
             dialogue.show_warning(
-                title="无效的仓库",
-                text="已检测到无效的仓库！",
-                information="请在设置中重新配置一个仓库！\n"
-                + "一个有效的仓库URL必须是非空的，\n"
-                + '并且必须以"http://"或"https://"为前缀。',
+                title="Invalid repository",
+                text="An invalid repository was detected!",
+                information="Please reconfigure a repository in settings!\n"
+                + "A valid repository is a repository URL which is not\n"
+                + 'empty and is prefixed with "http://" or "https://"',
             )
 
     def _do_force_update_existing_repo(self, base_path: str, repo_url: str) -> None:
@@ -2399,7 +2364,7 @@ class MainContent(QObject):
             repo_path = str((Path(base_path) / repo_folder_name))
             if os.path.exists(repo_path):  # If local repo does exists
                 # Clone the repo to storage path and notify user
-                logger.info(f"正在强制更新Git仓库，位于: {repo_path}")
+                logger.info(f"Force updating git repository at: {repo_path}")
                 try:
                     # Open repo
                     repo = Repo(repo_path)
@@ -2414,7 +2379,7 @@ class MainContent(QObject):
                         repo.git.checkout(target_branch)
                     else:
                         # Handle the case when the target branch is not found
-                        logger.warning("目标分支未找到。")
+                        logger.warning("Target branch not found.")
                     # Reset the repository to HEAD in case of changes not committed
                     repo.head.reset(index=True, working_tree=True)
                     # Perform a pull with rebase
@@ -2422,8 +2387,8 @@ class MainContent(QObject):
                     origin.pull(rebase=True)
                     # Notify user
                     dialogue.show_information(
-                        title="仓库已强制更新",
-                        text="配置好的仓库已更新！",
+                        title="Repo force updated",
+                        text="The configured repository was updated!",
                         information=f"{repo_path} ->\n "
                         + f"{repo.head.commit.message.decode() if isinstance(repo.head.commit.message, bytes) else repo.head.commit.message}",
                     )
@@ -2432,18 +2397,18 @@ class MainContent(QObject):
                 except GitCommandError:
                     stacktrace = traceback.format_exc()
                     dialogue.show_warning(
-                        title="更新仓库失败！",
-                        text="配置好的仓库更新失败！ "
-                        + "您是否已连接到 Internet？ "
-                        + "您配置的仓库是否有效？",
-                        information=f"已配置的仓库: {repo_url}",
+                        title="Failed to update repo!",
+                        text="The configured repo failed to update! "
+                        + "Are you connected to the Internet? "
+                        + "Is your configured repo valid?",
+                        information=f"Configured repository: {repo_url}",
                         details=stacktrace,
                     )
             else:
                 answer = dialogue.show_dialogue_conditional(
-                    title="仓库不存在”",
-                    text="尝试更新一个不存在的Git仓库！",
-                    information="您是否希望克隆这个仓库的一个新副本？",
+                    title="Repository does not exist",
+                    text="Tried to update a git repository that does not exist!",
+                    information="Would you like to clone a new copy of this repository?",
                 )
                 if answer == "&Yes":
                     if GIT_EXISTS:
@@ -2456,11 +2421,11 @@ class MainContent(QObject):
         else:
             # Warn the user so they know to configure in settings
             dialogue.show_warning(
-                title="无效的存储库",
-                text="已检测到无效的仓库！",
-                information="请在设置中重新配置一个仓库！\n"
-                + "一个有效的仓库URL必须是非空的，\n"
-                + '并且必须以"http://"或"https://"为前缀。',
+                title="Invalid repository",
+                text="An invalid repository was detected!",
+                information="Please reconfigure a repository in settings!\n"
+                + "A valid repository is a repository URL which is not\n"
+                + 'empty and is prefixed with "http://" or "https://"',
             )
 
     def _do_upload_db_to_repo(self, repo_url: str, file_name: str) -> None:
@@ -2481,7 +2446,7 @@ class MainContent(QObject):
             if os.path.exists(repo_path):  # If local repo exists
                 # Update the file, commit + PR to repo
                 logger.info(
-                    f"正在尝试将针对{file_name}的更改提交到Git仓库: {repo_path}"
+                    f"Attempting to commit changes to {file_name} in git repository: {repo_path}"
                 )
                 try:
                     # Specify the file path relative to the local repository
@@ -2490,9 +2455,9 @@ class MainContent(QObject):
                         # Load JSON data
                         with open(file_full_path, encoding="utf-8") as f:
                             json_string = f.read()
-                            logger.debug("正在读取信息...")
+                            logger.debug("Reading info...")
                             database = json.loads(json_string)
-                            logger.debug("已检索数据库...")
+                            logger.debug("Retrieved database...")
                         if database.get("version"):
                             database_version = (
                                 database["version"]
@@ -2502,7 +2467,7 @@ class MainContent(QObject):
                             database_version = database["timestamp"]
                         else:
                             logger.error(
-                                "无法从数据库中解析版本信息或时间戳。取消上传。"
+                                "Unable to parse version or timestamp from database. Cancelling upload."
                             )
                         # Get the abbreviated timezone
                         timezone_abbreviation = (
@@ -2518,9 +2483,9 @@ class MainContent(QObject):
                         )
                     else:
                         dialogue.show_warning(
-                            title="文件不存在",
-                            text="请确保文件存在，然后再次尝试上传！",
-                            information=f"文件未找到:\n{file_full_path}\n仓库:\n{repo_url}",
+                            title="File does not exist",
+                            text="Please ensure the file exists and then try to upload again!",
+                            information=f"File not found:\n{file_full_path}\nRepository:\n{repo_url}",
                         )
                         return
 
@@ -2538,18 +2503,18 @@ class MainContent(QObject):
                     new_branch_name = f"{database_version}"
 
                     # Specify commit message
-                    commit_message = f"数据库更新: {database_version_human_readable}"
+                    commit_message = f"DB Update: {database_version_human_readable}"
 
                     # Specify the Pull Request fields
-                    pull_request_title = f"数据库更新 {database_version}"
-                    pull_request_body = f"Steam 创意工坊 {commit_message}"
+                    pull_request_title = f"DB update {database_version}"
+                    pull_request_body = f"Steam Workshop {commit_message}"
 
                     # Open repo
                     local_repo = Repo(repo_path)
 
                     # Create our new branch and checkout
                     new_branch = local_repo.create_head(new_branch_name)
-                    local_repo.head.reference = new_branch
+                    local_repo.head.set_reference(ref=new_branch)
 
                     # Add the file to the index on our new branch
                     local_repo.index.add([file_full_path])
@@ -2563,10 +2528,10 @@ class MainContent(QObject):
                     except Exception:
                         stacktrace = traceback.format_exc()
                         dialogue.show_warning(
-                            title="无法将新分支推送到仓库！",
-                            text=f"F无法将新分支 {new_branch_name} 推送到 {repo_folder_name} 仓库! "
-                            + "尝试手动推送并创建拉取请求。如果不行，请切换到主分支（main）再试一次！",
-                            information=f"已配置的仓库: {repo_url}",
+                            title="Failed to push new branch to repo!",
+                            text=f"Failed to push a new branch {new_branch_name} to {repo_folder_name}! Try to see "
+                            + "if you can manually push + Pull Request. Otherwise, checkout main and try again!",
+                            information=f"Configured repository: {repo_url}",
                             details=stacktrace,
                         )
                     try:
@@ -2581,20 +2546,20 @@ class MainContent(QObject):
                     except Exception:
                         stacktrace = traceback.format_exc()
                         dialogue.show_warning(
-                            title="无法创建拉取请求！",
-                            text=f"无法为分支 {base_branch} 从 {new_branch_name} 创建拉取请求！!\n"
-                            + "该分支应该被推送。检查GitHub ，看看你是否可以在那里"
-                            + "手动创建一个拉取请求！否则，切换到主分支并再试一次！",
-                            information=f"已配置的仓库: {repo_url}",
+                            title="Failed to create pull request!",
+                            text=f"Failed to create a pull request for branch {base_branch} <- {new_branch_name}!\n"
+                            + "The branch should be pushed. Check on Github to see if you can manually"
+                            + " make a Pull Request there! Otherwise, checkout main and try again!",
+                            information=f"Configured repository: {repo_url}",
                             details=stacktrace,
                         )
                     # Cleanup
                     self._do_cleanup_gitpython(repo=local_repo)
                     # Notify the pull request URL
                     answer = dialogue.show_dialogue_conditional(
-                        title="拉取请求已创建",
-                        text="成功创建了拉取请求！",
-                        information="你想尝试在你的网页浏览器中打开它吗？\n\n"
+                        title="Pull request created",
+                        text="Successfully created pull request!",
+                        information="Do you want to try to open it in your web browser?\n\n"
                         + f"URL: {pull_request_url}",
                     )
                     if answer == "&Yes":
@@ -2603,16 +2568,16 @@ class MainContent(QObject):
                 except Exception:
                     stacktrace = traceback.format_exc()
                     dialogue.show_warning(
-                        title="更新仓库失败！",
-                        text=f"配置的仓库更新失败！\n文件名: {file_name}",
-                        information=f"已配置的仓库: {repo_url}",
+                        title="Failed to update repo!",
+                        text=f"The configured repo failed to update!\nFile name: {file_name}",
+                        information=f"Configured repository: {repo_url}",
                         details=stacktrace,
                     )
             else:
                 answer = dialogue.show_dialogue_conditional(
-                    title="仓库不存在",
-                    text="尝试更新一个不存在的Git仓库！",
-                    information="你想克隆这个仓库的一个新副本吗？",
+                    title="Repository does not exist",
+                    text="Tried to update a git repository that does not exist!",
+                    information="Would you like to clone a new copy of this repository?",
                 )
                 if answer == "&Yes":
                     if GIT_EXISTS:
@@ -2625,19 +2590,19 @@ class MainContent(QObject):
         else:
             # Warn the user so they know to configure in settings
             dialogue.show_warning(
-                title="无效的仓库",
-                text="检测到了一个无效的仓库！",
+                title="Invalid repository",
+                text="An invalid repository was detected!",
                 information="Please reconfigure a repository in settings!\n"
-                + '一个有效的仓库是指一个不为空的仓库URL，且该URL以 "http://" 或 "https://" 为前缀。',
+                + 'A valid repository is a repository URL which is not empty and is prefixed with "http://" or "https://"',
             )
 
     def _do_notify_no_git(self) -> None:
         answer = dialogue.show_dialogue_conditional(  # We import last so we can use gui + utils
-            title="找不到git",
-            text="在PATH 环境变量中未找到 git 可执行文件！",
+            title="git not found",
+            text="git executable was not found in $PATH!",
             information=(
-                "没有安装 Git 的话，Git 集成将无法使用！您是否想打开 Git 的下载页面？\n\n"
-                "如果你刚刚安装了Git，请重启RimSort以使PATH变更生效。"
+                "Git integration will not work without Git installed! Do you want to open download page for Git?\n\n"
+                "If you just installed Git, please restart RimSort for the PATH changes to take effect."
             ),
         )
         if answer == "&Yes":
@@ -2659,29 +2624,29 @@ class MainContent(QObject):
 
     def _do_configure_steam_db_file_path(self) -> None:
         # Input file
-        logger.info("打开文件对话框以指定 Steam 数据库")
+        logger.info("Opening file dialog to specify Steam DB")
         input_path = dialogue.show_dialogue_file(
             mode="open",
             caption="Choose Steam Workshop Database",
             _dir=str(AppInfo().app_storage_folder),
             _filter="JSON (*.json)",
         )
-        logger.info(f"所选路径: {input_path}")
+        logger.info(f"Selected path: {input_path}")
         if input_path and os.path.exists(input_path):
             self.settings_controller.settings.external_steam_metadata_file_path = (
                 input_path
             )
             self.settings_controller.settings.save()
         else:
-            logger.debug("USER ACTION: 取消选择！")
+            logger.debug("USER ACTION: cancelled selection!")
             return
 
     def _do_configure_community_rules_db_file_path(self) -> None:
         # Input file
-        logger.info("打开文件对话框以指定社区规则数据库")
+        logger.info("Opening file dialog to specify Community Rules DB")
         input_path = dialogue.show_dialogue_file(
-            mode="打开",
-            caption="选择社区规则数据库",
+            mode="open",
+            caption="Choose Community Rules DB",
             _dir=str(AppInfo().app_storage_folder),
             _filter="JSON (*.json)",
         )
@@ -2692,7 +2657,7 @@ class MainContent(QObject):
             )
             self.settings_controller.settings.save()
         else:
-            logger.debug("USER ACTION: 取消选择！")
+            logger.debug("USER ACTION: cancelled selection!")
             return
 
     def _do_configure_steam_database_repo(self) -> None:
@@ -2701,8 +2666,8 @@ class MainContent(QObject):
         This URL is used for Steam DB repo related actions.
         """
         args, ok = dialogue.show_dialogue_input(
-            title="编辑Steam数据库仓库",
-            label="进入 URL (https://github.com/AccountName/RepositoryName):",
+            title="Edit Steam DB repo",
+            label="Enter URL (https://github.com/AccountName/RepositoryName):",
             text=self.settings_controller.settings.external_steam_metadata_repo,
         )
         if ok:
@@ -2715,8 +2680,8 @@ class MainContent(QObject):
         DB repo. This URL is used for Steam DB repo related actions.
         """
         args, ok = dialogue.show_dialogue_input(
-            title="编辑社区规则数据库仓库",
-            label="进入 URL (https://github.com/AccountName/RepositoryName):",
+            title="Edit Community Rules DB repo",
+            label="Enter URL (https://github.com/AccountName/RepositoryName):",
             text=self.settings_controller.settings.external_community_rules_repo,
         )
         if ok:
@@ -2725,16 +2690,16 @@ class MainContent(QObject):
 
     def _do_build_database_thread(self) -> None:
         # Prompt user file dialog to choose/create new DB
-        logger.info("打开文件对话框以指定输出文件")
+        logger.info("Opening file dialog to specify output file")
         output_path = dialogue.show_dialogue_file(
-            mode="保存",
-            caption="指定输出路径",
+            mode="save",
+            caption="Designate output path",
             _dir=str(AppInfo().app_storage_folder),
             _filter="JSON (*.json)",
         )
         # Check file path and launch DB Builder with user configured mode
         if output_path:  # If output path was returned
-            logger.info(f"所选路径: {output_path}")
+            logger.info(f"Selected path: {output_path}")
             if not output_path.endswith(".json"):
                 output_path += ".json"  # Handle file extension if needed
             # RimWorld Workshop contains 30,000+ PublishedFileIDs (mods) as of 2023!
@@ -2769,7 +2734,7 @@ class MainContent(QObject):
             self.query_runner = RunnerPanel()
             self.query_runner.closing_signal.connect(self.db_builder.terminate)
             self.query_runner.setWindowTitle(
-                f"RimSort - 数据库生成器 ({self.settings_controller.settings.db_builder_include})"
+                f"RimSort - DB Builder ({self.settings_controller.settings.db_builder_include})"
             )
             self.query_runner.progress_bar.show()
             self.query_runner.show()
@@ -2780,15 +2745,15 @@ class MainContent(QObject):
             # Start DB builder
             self.db_builder.start()
         else:
-            logger.debug("USER ACTION: 取消的选区...")
+            logger.debug("USER ACTION: cancelled selection...")
 
-    def _do_blacklist_action_steamdb(self, instruction: list) -> None:
+    def _do_blacklist_action_steamdb(self, instruction: list[Any]) -> None:
         if (
             self.metadata_manager.external_steam_metadata_path
             and self.metadata_manager.external_steam_metadata
             and len(self.metadata_manager.external_steam_metadata.keys()) > 0
         ):
-            logger.info(f"更新Steam数据库中项目的黑名单状态: {instruction}")
+            logger.info(f"Updating SteamDB blacklist status for item: {instruction}")
             # Retrieve instruction passed from signal
             publishedfileid = instruction[0]
             blacklist = instruction[1]
@@ -2813,7 +2778,7 @@ class MainContent(QObject):
                 self.metadata_manager.external_steam_metadata[publishedfileid].pop(
                     "blacklist", None
                 )
-            logger.debug("使用新的元数据更新先前的数据库...\n")
+            logger.debug("Updating previous database with new metadata...\n")
             with open(
                 self.metadata_manager.external_steam_metadata_path,
                 "w",
@@ -2844,7 +2809,7 @@ class MainContent(QObject):
         # Create query runner
         self.query_runner = RunnerPanel()
         self.query_runner.closing_signal.connect(self.db_builder.terminate)
-        self.query_runner.setWindowTitle("RimSort - 数据库生成器已发布文件ID查询")
+        self.query_runner.setWindowTitle("RimSort - DB Builder PublishedFileIDs query")
         self.query_runner.progress_bar.show()
         self.query_runner.show()
         # Connect message signal
@@ -2858,10 +2823,10 @@ class MainContent(QObject):
         loop.exec_()
         if not len(self.db_builder.publishedfileids) > 0:
             dialogue.show_warning(
-                title="没有已发布模组的ID",
-                text="数据库生成器的查询没有返回任何已发布模组的ID！",
-                information="这通常是由于无效的/缺失的Steam WebAPI密钥，或者与Steam WebAPI的连接问题所导致的。\n"
-                + "从Steam检索模组时，需要已发布模组ID（PublishedFileIDs）!",
+                title="No PublishedFileIDs",
+                text="DB Builder query did not return any PublishedFileIDs!",
+                information="This is typically caused by invalid/missing Steam WebAPI key, or a connectivity issue to the Steam WebAPI.\n"
+                + "PublishedFileIDs are needed to retrieve mods from Steam!",
             )
         else:
             self.query_runner.close()
@@ -2876,19 +2841,19 @@ class MainContent(QObject):
                         mod_pfid = metadata_values.get("publishedfileid")
                     if mod_pfid and mod_pfid in self.db_builder.publishedfileids:
                         logger.debug(
-                            f"跳过已存在的Steam模组下载: {mod_pfid}"
+                            f"Skipping download of existing SteamCMD mod: {mod_pfid}"
                         )
                         self.db_builder.publishedfileids.remove(mod_pfid)
                 self._do_download_mods_with_steamcmd(self.db_builder.publishedfileids)
             elif "steamworks" in action:
                 answer = dialogue.show_dialogue_conditional(
-                    title="是否确定？",
-                    text="可能有风险",
-                    information="警告: 不建议一次性通过Steam订阅如此多的模组。"
-                    + "Steam对API订阅设有限制，这些限制看似有意为之，也可能非故意设置。"
-                    + "强烈建议您使用SteamCMD将这些模组下载到SteamCMD前缀中。"
-                    + "由于速率限制，这个过程可能需要更长的时间。但如果您不想通过RimSort匿名下载，"
-                    + "您也可以使用RimSort生成的脚本与另一个经过身份验证的SteamCMD实例配合使用。",
+                    title="Are you sure?",
+                    text="Here be dragons.",
+                    information="WARNING: It is NOT recommended to subscribe to this many mods at once via Steam. "
+                    + "Steam has limitations in place seemingly intentionally and unintentionally for API subscriptions. "
+                    + "It is highly recommended that you instead download these mods to a SteamCMD prefix by using SteamCMD. "
+                    + "This can take longer due to rate limits, but you can also re-use the script generated by RimSort with "
+                    + "a separate, authenticated instance of SteamCMD, if you do not want to anonymously download via RimSort.",
                 )
                 if answer == "&Yes":
                     for (
@@ -2901,12 +2866,12 @@ class MainContent(QObject):
                             and mod_pfid in self.db_builder.publishedfileids
                         ):
                             logger.warning(
-                                f"跳过已存在的Steam模组下载: {mod_pfid}"
+                                f"Skipping download of existing Steam mod: {mod_pfid}"
                             )
                             self.db_builder.publishedfileids.remove(mod_pfid)
                     self._do_steamworks_api_call_animated(
                         [
-                            "订阅",
+                            "subscribe",
                             [
                                 eval(str_pfid)
                                 for str_pfid in self.db_builder.publishedfileids
@@ -2921,8 +2886,8 @@ class MainContent(QObject):
         the Steam Workshop metadata needed for sorting
         """
         args, ok = dialogue.show_dialogue_input(
-            title="编辑Steam WebAPI密钥",
-            label="在这里输入您的个人32位Steam WebAPI密钥:",
+            title="Edit Steam WebAPI key",
+            label="Enter your personal 32 character Steam WebAPI key here:",
             text=self.settings_controller.settings.steam_apikey,
         )
         if ok:
@@ -2940,48 +2905,48 @@ class MainContent(QObject):
         database_b_deps: dict[str, Any] = {}
         # Notify user
         dialogue.show_information(
-            title="Steam 数据库生成器",
-            text="此操作将比较两个数据库A和B，通过检查A中的依赖项与B中的依赖项来进行比较。",
-            information="- 这将生成两个Steam数据库之间依赖数据的准确比较。\n"
-            + "生成了差异报告。系统将提示您输入这些路径，以便进行进一步的操作。:\n"
-            + "\n\t1) 选择输入A"
-            + "\n\t2) 选择输入B",
+            title="Steam DB Builder",
+            text="This operation will compare 2 databases, A & B, by checking dependencies from A with dependencies from B.",
+            information="- This will produce an accurate comparison of dependency data between 2 Steam DBs.\n"
+            + "A report of discrepancies is generated. You will be prompted for these paths in order:\n"
+            + "\n\t1) Select input A"
+            + "\n\t2) Select input B",
         )
         # Input A
-        logger.info("打开文件对话框以指定输入文件A")
+        logger.info("Opening file dialog to specify input file A")
         input_path_a = dialogue.show_dialogue_file(
-            mode="打开",
-            caption='输入“待更新”数据库，即输入A',
+            mode="open",
+            caption='Input "to-be-updated" database, input A',
             _dir=str(AppInfo().app_storage_folder),
             _filter="JSON (*.json)",
         )
-        logger.info(f"所选路径: {input_path_a}")
+        logger.info(f"Selected path: {input_path_a}")
         if input_path_a and os.path.exists(input_path_a):
             with open(input_path_a, encoding="utf-8") as f:
                 json_string = f.read()
-                logger.debug("阅读信息...")
+                logger.debug("Reading info...")
                 db_input_a = json.loads(json_string)
-                logger.debug("已检索数据库A...")
+                logger.debug("Retrieved database A...")
         else:
-            logger.warning("Steam 数据库生成器: 用户取消选择...")
+            logger.warning("Steam DB Builder: User cancelled selection...")
             return
         # Input B
-        logger.info("打开文件对话框以指定输入文件B")
+        logger.info("Opening file dialog to specify input file B")
         input_path_b = dialogue.show_dialogue_file(
-            mode="打开",
-            caption='输入“待更新”数据库，即输入A',
+            mode="open",
+            caption='Input "to-be-updated" database, input A',
             _dir=str(AppInfo().app_storage_folder),
             _filter="JSON (*.json)",
         )
-        logger.info(f"所选路径: {input_path_b}")
+        logger.info(f"Selected path: {input_path_b}")
         if input_path_b and os.path.exists(input_path_b):
             with open(input_path_b, encoding="utf-8") as f:
                 json_string = f.read()
-                logger.debug("阅读信息...")
+                logger.debug("Reading info...")
                 db_input_b = json.loads(json_string)
-                logger.debug("已检索数据库B...")
+                logger.debug("Retrieved database B...")
         else:
-            logger.debug("Steam 数据库生成器: 用户取消选择...")
+            logger.debug("Steam DB Builder: User cancelled selection...")
             return
         for k, v in db_input_a["database"].items():
             # print(k, v['dependencies'])
@@ -3040,61 +3005,61 @@ class MainContent(QObject):
             f"Comparison skipped for {len(comparison_skipped)} unpublished mods: {comparison_skipped}"
         )
         dialogue.show_information(
-            title="Steam 数据库生成器",
-            text=f"Steam 数据库比较报告: 发现{len(discrepancies)}项差异",
-            information="点击“显示详情”以查看完整报告！",
+            title="Steam DB Builder",
+            text=f"Steam DB comparison report: {len(discrepancies)} found",
+            information="Click 'Show Details' to see the full report!",
             details=report,
         )
 
     def _do_merge_databases(self) -> None:
         # Notify user
         dialogue.show_information(
-            title="Steam 数据库生成器",
-            text="此操作将通过递归地使用B来更新A（排除异常情况），来合并两个数据库A和B。",
-            information="- 这将有效地通过递归方式将B的键值对覆盖到A的键值对上，以生成最终的数据库。\n"
-            + "- 但需要注意的是，异常情况不会被递归更新。相反，它们将完全使用B的键来覆盖。\n"
-            + "- 将做出以下例外情况:\n"
+            title="Steam DB Builder",
+            text="This operation will merge 2 databases, A & B, by recursively updating A with B, barring exceptions.",
+            information="- This will effectively recursively overwrite A's key/value with B's key/value to the resultant database.\n"
+            + "- Exceptions will not be recursively updated. Instead, they will be overwritten with B's key entirely.\n"
+            + "- The following exceptions will be made:\n"
             + f"\n\t{app_constants.DB_BUILDER_RECURSE_EXCEPTIONS}\n\n"
-            + "生成的数据库C将被保存到用户指定的路径。您将会按顺序被提示输入这些路径。:\n"
-            + "\n\t1) 选择输入A（待更新的数据库）"
-            + "\n\t2) 选择输入B（更新源）"
-            + "\n\t3) 选择输出C（结果数据库）",
+            + "The resultant database, C, is saved to a user-specified path. You will be prompted for these paths in order:\n"
+            + "\n\t1) Select input A (db to-be-updated)"
+            + "\n\t2) Select input B (update source)"
+            + "\n\t3) Select output C (resultant db)",
         )
         # Input A
-        logger.info("打开文件对话框以指定输入文件A")
+        logger.info("Opening file dialog to specify input file A")
         input_path_a = dialogue.show_dialogue_file(
-            mode="打开",
-            caption='输入“待更新”数据库，即输入A',
+            mode="open",
+            caption='Input "to-be-updated" database, input A',
             _dir=str(AppInfo().app_storage_folder),
             _filter="JSON (*.json)",
         )
-        logger.info(f"所选路径: {input_path_a}")
+        logger.info(f"Selected path: {input_path_a}")
         if input_path_a and os.path.exists(input_path_a):
             with open(input_path_a, encoding="utf-8") as f:
                 json_string = f.read()
-                logger.debug("阅读信息...")
+                logger.debug("Reading info...")
                 db_input_a = json.loads(json_string)
-                logger.debug("已检索数据库A...")
+                logger.debug("Retrieved database A...")
         else:
-            logger.warning("Steam 数据库生成器: 用户取消选择...")
+            logger.warning("Steam DB Builder: User cancelled selection...")
             return
         # Input B
-        logger.info("打开文件对话框以指定输入文件B")
+        logger.info("Opening file dialog to specify input file B")
         input_path_b = dialogue.show_dialogue_file(
-            mode="打开",
-            caption='输入“待更新”数据库，即输入A',
+            mode="open",
+            caption='Input "to-be-updated" database, input A',
             _dir=str(AppInfo().app_storage_folder),
             _filter="JSON (*.json)",
         )
-        logger.info(f"所选路径: {input_path_b}")
+        logger.info(f"Selected path: {input_path_b}")
         if input_path_b and os.path.exists(input_path_b):
             with open(input_path_b, encoding="utf-8") as f:
                 json_string = f.read()
-                logger.debug("阅读信息...")
+                logger.debug("Reading info...")
                 db_input_b = json.loads(json_string)
-                logger.debug("已检索数据库B...")
+                logger.debug("Retrieved database B...")
         else:
-            logger.debug("Steam 数据库生成器: 用户取消选择...")
+            logger.debug("Steam DB Builder: User cancelled selection...")
             return
         # Output C
         db_output_c = db_input_a.copy()
@@ -3104,55 +3069,55 @@ class MainContent(QObject):
             prune_exceptions=app_constants.DB_BUILDER_PRUNE_EXCEPTIONS,
             recurse_exceptions=app_constants.DB_BUILDER_RECURSE_EXCEPTIONS,
         )
-        logger.info("已使用数据库B的数据更新数据库A！")
+        logger.info("Updated DB A with DB B!")
         logger.debug(db_output_c)
-        logger.info("打开文件对话框以指定输出文件")
+        logger.info("Opening file dialog to specify output file")
         output_path = dialogue.show_dialogue_file(
-            mode="保存",
-            caption="为结果数据库指定输出路径:",
+            mode="save",
+            caption="Designate output path for resultant database:",
             _dir=str(AppInfo().app_storage_folder),
             _filter="JSON (*.json)",
         )
-        logger.info(f"所选路径: {output_path}")
+        logger.info(f"Selected path: {output_path}")
         if output_path:
             if not output_path.endswith(".json"):
                 output_path += ".json"  # Handle file extension if needed
             with open(output_path, "w", encoding="utf-8") as output:
                 json.dump(db_output_c, output, indent=4)
         else:
-            logger.warning("Steam 数据库生成器: 用户取消选择...")
+            logger.warning("Steam DB Builder: User cancelled selection...")
             return
 
-    def _do_update_rules_database(self, instruction: list) -> None:
+    def _do_update_rules_database(self, instruction: list[Any]) -> None:
         rules_source = instruction[0]
         rules_data = instruction[1]
         # Get path based on rules source
         if (
-            rules_source == "社区规则"
+            rules_source == "Community Rules"
             and self.metadata_manager.external_community_rules_path
         ):
             path = self.metadata_manager.external_community_rules_path
-        elif rules_source == "用户规则" and str(
+        elif rules_source == "User Rules" and str(
             AppInfo().databases_folder / "userRules.json"
         ):
             path = str(AppInfo().databases_folder / "userRules.json")
         else:
             logger.warning(
-                f"未设置 {rules_source} 文件路径。未配置要更新的数据库！"
+                f"No {rules_source} file path is set. There is no configured database to update!"
             )
             return
         # Retrieve original database
         try:
             with open(path, encoding="utf-8") as f:
                 json_string = f.read()
-                logger.debug("阅读信息...")
+                logger.debug("Reading info...")
                 db_input_a = json.loads(json_string)
                 logger.debug(
-                    f"已检索到现有 {rules_source} 数据库的副本以进行更新。"
+                    f"Retrieved copy of existing {rules_source} database to update."
                 )
         except Exception:
-            logger.error("无法从现有数据库中读取信息")
-        db_input_b = {"时间戳": int(time.time()), "规则": rules_data}
+            logger.error("Failed to read info from existing database")
+        db_input_b = {"timestamp": int(time.time()), "rules": rules_data}
         db_output_c = db_input_a.copy()
         # Update database in place
         metadata.recursively_update_dict(
@@ -3163,16 +3128,16 @@ class MainContent(QObject):
         )
         # Overwrite rules database
         answer = dialogue.show_dialogue_conditional(
-            title="RimSort - 数据库生成器",
-            text="是否要继续？",
-            information=f"此操作将覆盖 {rules_source} 数据库，位于以下路径的:\n\n{path}",
+            title="RimSort - DB Builder",
+            text="Do you want to continue?",
+            information=f"This operation will overwrite the {rules_source} database located at the following path:\n\n{path}",
         )
         if answer == "&Yes":
             with open(path, "w", encoding="utf-8") as output:
                 json.dump(db_output_c, output, indent=4)
             self._do_refresh()
         else:
-            logger.debug("USER ACTION: 拒绝继续规则数据库更新。")
+            logger.debug("USER ACTION: declined to continue rules database update.")
 
     def _do_set_database_expiry(self) -> None:
         """
@@ -3180,8 +3145,8 @@ class MainContent(QObject):
         WebAPI Query Expiry (in seconds)
         """
         args, ok = dialogue.show_dialogue_input(
-            title="更新Steam数据库的有效期:",
-            label="请输入您偏好的过期时长（以秒为单位）（默认为1周/604800秒）:",
+            title="Edit SteamDB expiry:",
+            label="Enter your preferred expiry duration in seconds (default 1 week/604800 sec):",
             text=str(self.settings_controller.settings.database_expiry),
         )
         if ok:
@@ -3190,8 +3155,8 @@ class MainContent(QObject):
                 self.settings_controller.settings.save()
             except ValueError:
                 dialogue.show_warning(
-                    "尝试使用非整数值配置动态查询。",
-                    "请重新配置过期值，使用从UNIX时间戳的起始点开始计算的秒数整数，以确定您希望查询过期的具体时间。",
+                    "Tried configuring Dynamic Query with a value that is not an integer.",
+                    "Please reconfigure the expiry value with an integer in terms of the seconds from epoch you would like your query to expire.",
                 )
 
     @Slot()
@@ -3201,7 +3166,7 @@ class MainContent(QObject):
         )
         if not instance:
             logger.warning(
-                f"尝试访问不存在的实例 {self.settings_controller.settings.current_instance} !"
+                f"Tried to access instance {self.settings_controller.settings.current_instance} that does not exist!"
             )
             return None
 

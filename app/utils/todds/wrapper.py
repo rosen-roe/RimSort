@@ -28,7 +28,7 @@ class ToddsInterface:
             preset = "优化"
         self.preset = preset
         self.todds_presets = {
-            "清理": [
+            "clean": [
                 "-cl",
                 "-o",
                 "-ss",
@@ -36,7 +36,7 @@ class ToddsInterface:
                 "-p",
                 "-t",
             ],
-            "优化": [
+            "optimized": [
                 "-f",
                 "BC1",
                 "-af",
